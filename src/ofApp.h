@@ -95,4 +95,6 @@ class ofApp : public ofBaseApp{
 		glm::vec3 gravityForce = glm::vec3(0, -2, 0);
 
 		std::set<int> keysPressed;
+
+		float distance;
 };

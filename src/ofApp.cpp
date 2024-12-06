@@ -37,9 +37,16 @@ void ofApp::setup(){
 	//
 	initLightingAndMaterials();
 
+	// Load terrain
 	mars.loadModel("geo/moonTerrain_size1.obj");
 	// mars.loadModel("geo/moon-houdini.obj");
 	mars.setScaleNormalization(false);
+
+	// Load lander
+	lander.loadModel("geo/lander.obj");
+	lander.setScaleNormalization(false);
+	bLanderLoaded = true;
+	lander.setPosition(0, 30, 0);
 
 	// create sliders for testing
 	//
@@ -66,6 +73,23 @@ void ofApp::setup(){
 // incrementally update scene (animation)
 //
 void ofApp::update() {
+	// Measure distance
+	glm::vec3 rayPoint = lander.getPosition();
+	glm::vec3 rayDir = glm::vec3(0, -1, 0);
+	glm::normalize(rayDir);
+	Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z), Vector3(rayDir.x, rayDir.y, rayDir.z));
+	pointSelected = octree.intersect(ray, octree.root, selectedNode);
+	Vector3 center = selectedNode.box.center();
+	distance = glm::distance(lander.getPosition(), glm::vec3(center.x(), center.y(), center.z()));
+
+	// Collision
+	ofVec3f min = lander.getSceneMin() + lander.getPosition();
+	ofVec3f max = lander.getSceneMax() + lander.getPosition();
+	Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
+
+	colBoxList.clear();
+	octree.intersect(bounds, octree.root, colBoxList);
+
 	// Lander physics simulation
 	float framerate = ofGetFrameRate();
 	float dt = (framerate > 0) ? 1.0 / framerate : 0;
@@ -98,17 +122,10 @@ void ofApp::update() {
 		landerAngularForce -= 100;
 	if (keysPressed.count(OF_KEY_RIGHT))
 		landerAngularForce += 100;
-
-	// Measure distance
-	glm::vec3 rayPoint = lander.getPosition();
-	glm::vec3 rayDir = glm::vec3(0, -1, 0);
-	glm::normalize(rayDir);
-	Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z), Vector3(rayDir.x, rayDir.y, rayDir.z));
-	pointSelected = octree.intersect(ray, octree.root, selectedNode);
-	Vector3 center = selectedNode.box.center();
-	float distance = glm::distance(lander.getPosition(), glm::vec3(center.x(), center.y(), center.z()));
-	cout << "Distance: " << distance << endl;
-
+	if (colBoxList.size() >= 10) {
+		landerForce += glm::vec3(0, 30, 0);
+	}
+	
 	if (animateLander) {
 		ofVec3f min = lander.getSceneMin() + lander.getPosition();
 		ofVec3f max = lander.getSceneMax() + lander.getPosition();
@@ -229,6 +246,7 @@ void ofApp::draw() {
 	// Draw GUI last to place on top
 	glDepthMask(false);
 	if (!bHide) gui.draw();
+	ofDrawBitmapString(distance, 15, 15);
 	glDepthMask(true);
 }
 
