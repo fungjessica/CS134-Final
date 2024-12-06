@@ -49,8 +49,7 @@ public:
 	int strayVerts= 0;
 	int numLeaf = 0;
 
-	const std::vector<ofColor>* colors = nullptr;
-	glm::vec3 closestPoint;
-	float minDistance;
-	TreeNode closestNode;
+	// Level colors
+	vector<ofColor> levelColors = { ofColor::darkRed, ofColor::red, ofColor::orange, ofColor::yellow, ofColor::green
+		, ofColor::aqua, ofColor::blue, ofColor::midnightBlue, ofColor::purple, ofColor::pink };
 };

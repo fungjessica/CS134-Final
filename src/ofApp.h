@@ -4,8 +4,6 @@
 #include "ofxGui.h"
 #include  "ofxAssimpModelLoader.h"
 #include "Octree.h"
-//#include <glm/gtx/intersect.hpp>
-
 
 class ofApp : public ofBaseApp{
 
@@ -38,7 +36,7 @@ class ofApp : public ofBaseApp{
 		glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p , glm::vec3 n);
 
 		ofEasyCam cam;
-		ofxAssimpModelLoader lander, moon;
+		ofxAssimpModelLoader mars, lander;
 		ofLight light;
 		Box boundingBox, landerBounds;
 		Box testBox;
@@ -46,14 +44,11 @@ class ofApp : public ofBaseApp{
 		bool bLanderSelected = false;
 		Octree octree;
 		TreeNode selectedNode;
-		glm::vec3 mouseDownPos, mouseLastPos, mouseLastDir;
+		glm::vec3 mouseDownPos, mouseLastPos;
 		bool bInDrag = false;
 
 
 		ofxIntSlider numLevels;
-		ofxToggle loadLander;
-		ofxToggle loadMoon;
-		ofxToggle timingInfo;
 		ofxPanel gui;
 
 		bool bAltKeyDown;
@@ -64,27 +59,40 @@ class ofApp : public ofBaseApp{
 		bool bHide;
 		bool pointSelected = false;
 		bool bDisplayLeafNodes = false;
-		bool bDisplayOctree = false;
+		bool bDisplayOctree = true;
 		bool bDisplayBBoxes = false;
 		
 		bool bLanderLoaded;
 		bool bTerrainSelected;
-		bool bTimingInfo;
-
+	
 		ofVec3f selectedPoint;
 		ofVec3f intersectPoint;
 
 		vector<Box> bboxList;
 
 		const float selectionRange = 4.0;
-		
-		std::vector<ofColor> colors;
 
-		ofMesh mesh;
-		bool moonTexture;
-		bool collide, reverse;
-		//ofxAssimpModelLoader moon;
-		float reverseSpeed = 5.0f;
-		glm::vec3 mouseLastPosition, reverseMove;
-		float startTimeOct, endTimeOct, startTimeRay, endTimeRay;
+		// Lander animate bool
+		bool animateLander;
+
+		// Timing
+		ofxToggle timingInfo;
+
+		// Lander variables
+		glm::vec3 landerPos = glm::vec3(0, 0, 0);
+		float landerRot = 0;
+
+		glm::vec3 landerVelocity = glm::vec3(0, 0, 0);
+		glm::vec3 landerAcceleration = glm::vec3(0, 0, 0);
+		glm::vec3 landerForce = glm::vec3(0, 0, 0);
+		float landerMass = 1.0;
+		float landerDamping = .99;
+		float landerAngularVelocity = 0;
+		float landerAngularAcceleration = 0;
+		float landerAngularForce = 0;
+
+		// Forces
+		glm::vec3 gravityForce = glm::vec3(0, -2, 0);
+
+		std::set<int> keysPressed;
 };

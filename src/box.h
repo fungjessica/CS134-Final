@@ -29,8 +29,8 @@ class Box {
     // corners
     Vector3 parameters[2];
 
-	Vector3 min() const { return parameters[0]; }
-	Vector3 max() const { return parameters[1]; }
+	Vector3 min() { return parameters[0]; }
+	Vector3 max() { return parameters[1]; }
 	const bool inside(const Vector3 &p) {
 		return ((p.x() >= parameters[0].x() && p.x() <= parameters[1].x()) &&
 		     	(p.y() >= parameters[0].y() && p.y() <= parameters[1].y()) &&
@@ -47,11 +47,12 @@ class Box {
 
 	// implement for Homework Project
 	//
-	 bool overlap(const Box &box) {
-		 return (min().x() <= box.max().x() && max().x() >= box.min().x()) &&
-           (min().y() <= box.max().y() && max().y() >= box.min().y()) &&
-           (min().z() <= box.max().z() && max().z() >= box.min().z());
-		 //return false;
+	bool overlap(const Box &box) {
+		if ((parameters[1].x() < box.parameters[0].x() || box.parameters[1].x() < parameters[0].x())
+			|| (parameters[1].y() < box.parameters[0].y() || box.parameters[1].y() < parameters[0].y())
+			|| (parameters[1].z() < box.parameters[0].z() || box.parameters[1].z() < parameters[0].z()))
+			return false;
+		return true;
 	}
 
 	Vector3 center() {

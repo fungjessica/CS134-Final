@@ -11,7 +11,7 @@
 
 
 #include "Octree.h"
- 
+#include "limits"
 
 
 //draw a box from a "Box" class  
@@ -132,7 +132,6 @@ void Octree::create(const ofMesh & geo, int numLevels) {
 	mesh = geo;
 	int level = 0;
 	root.box = meshBounds(mesh);
-	
 	if (!bUseFaces) {
 		for (int i = 0; i < mesh.getNumVertices(); i++) {
 			root.points.push_back(i);
@@ -141,9 +140,6 @@ void Octree::create(const ofMesh & geo, int numLevels) {
 	else {
 		// need to load face vertices here
 		//
-		for (int i = 0; i < mesh.getNumIndices()/3; i++) {
-			root.points.push_back(i);
-		}
 	}
 
 	// recursively buid octree
@@ -171,28 +167,24 @@ void Octree::subdivide(const ofMesh & mesh, TreeNode & node, int numLevels, int 
 	if (level >= numLevels) return;
 
 	// subdvide algorithm implemented here
-	vector<Box> boxList;
-	subDivideBox8(node.box, boxList);
+	// 1)
+	vector<Box> boxes;
+	subDivideBox8(node.box, boxes);
+	// 2)
+	for (int i = 0; i < boxes.size(); i++) {
+		vector<int> points;
+		int count = getMeshPointsInBox(mesh, node.points, boxes[i], points);
 
-	for (const auto& childBox : boxList) {
-		TreeNode childNode;
-		childNode.box = childBox;
+		if (count > 0) {
+			TreeNode child;
+			child.box = boxes[i];
+			child.points = points;
+			node.children.push_back(child);
 
-		vector<int> pointsInBox;
-		getMeshPointsInBox(mesh, node.points, childNode.box, pointsInBox);
-
-		if (!pointsInBox.empty()) {
-			childNode.points = pointsInBox;
-			node.children.push_back(childNode);
-
-			if (pointsInBox.size() > 1) {
-
-				subdivide(mesh, node.children.back(), numLevels, level+1); 
-			}
+			if (count > 1)
+				subdivide(mesh, node.children.at(node.children.size() - 1), numLevels, level + 1);
 		}
 	}
-
-	
 }
 
 // Implement functions below for Homework project
@@ -200,89 +192,55 @@ void Octree::subdivide(const ofMesh & mesh, TreeNode & node, int numLevels, int 
 
 bool Octree::intersect(const Ray &ray, const TreeNode & node, TreeNode & nodeRtn) {
 	bool intersects = false;
-	//return intersects;
-	float t0 = 0.0f;
-	float t1 = FLT_MAX;
-	float minDistance = FLT_MAX;
-	int closestPointIndex = -1;
-	glm::vec3 rayOrigin(ray.origin.x(), ray.origin.y(), ray.origin.z());  
 
-	if (!node.box.intersect(ray, t0, t1)) {
-		return false;
-	}
+	if (!node.box.intersect(ray, 0, numeric_limits<float>::max()))
+		return intersects;
 
-
-	if (node.children.empty()) {
+	if (node.children.size() == 0) {
 		nodeRtn = node;
-		
-
-		for (int point : node.points) {
-			glm::vec3 p = mesh.getVertex(point);
-
-			float distance = glm::distance(rayOrigin, p);
-			if (distance < minDistance) {
-				minDistance = distance;
-				closestPointIndex = point;
-			}
-		}
-		if (closestPointIndex != -1) {
-			closestPoint = mesh.getVertex(closestPointIndex);
-			//std::cout << "closest Point: " << closestPoint << std::endl;
-			//ofDrawSphere(closestPoint, 10);
-		}
-
-		return true;
-	}
-
-	for (auto& child : node.children) {
-		if (intersect(ray, child, nodeRtn)) {
-			intersects = true;
+		intersects = true;
+	} else {
+		for (int i = 0; i < node.children.size(); i++) {
+			intersects = intersect(ray, node.children.at(i), nodeRtn);
+			if (intersects)
+				break;
 		}
 	}
+
 	return intersects;
 }
 
 bool Octree::intersect(const Box &box, TreeNode & node, vector<Box> & boxListRtn) {
 	bool intersects = false;
 
-	const auto& nodeMin = node.box.parameters[0];
-	const auto& nodeMax = node.box.parameters[1];
-	const auto& boxMin = box.parameters[0];
-	const auto& boxMax = box.parameters[1];
+	if (!node.box.overlap(box))
+		return intersects;
 
-	if (nodeMax.x() < boxMin.x() || nodeMin.x() > boxMax.x()) return false;
-	if (nodeMax.y() < boxMin.y() || nodeMin.y() > boxMax.y()) return false;
-	if (nodeMax.z() < boxMin.z() || nodeMin.z() > boxMax.z()) return false;
-
-	intersects = true;
-
-	if (node.children.empty()) {
+	if (node.children.size() == 0) {
 		boxListRtn.push_back(node.box);
+		intersects = true;
+	} else {
+		for (int i = 0; i < node.children.size(); i++)
+			intersects = intersect(box, node.children.at(i), boxListRtn);
 	}
-	else {
-		for (auto& child : node.children) {
-			if (intersect(box, child, boxListRtn)) {
-				intersects = true;
-			}
-		}
-	}
+
 	return intersects;
 }
 
 void Octree::draw(TreeNode & node, int numLevels, int level) {
-	if (level > numLevels) return;
+	if (level >= numLevels) return;
 
-	if (colors) {
-		ofSetColor((*colors)[level % colors->size()]);
-	}
+	if (level > levelColors.size() - 1)
+		ofSetColor(levelColors[levelColors.size() - 1]);
+	else
+		ofSetColor(levelColors[level]);
 
 	drawBox(node.box);
+	level++;
 
-	for (auto& child : node.children) {
-		draw(child, numLevels, level + 1);
-	}
+	for (int i = 0; i < node.children.size(); i++)
+		draw(node.children[i], numLevels, level);
 }
-
 
 // Optional
 //

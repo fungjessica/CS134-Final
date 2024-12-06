@@ -6,14 +6,13 @@
 //  Octree Test - startup scene
 // 
 //
-//  Student Name:   < Jessica Fung >
-//  Date: <11/22/2024>
+//  Student Name:   Lee Rogers
+//  Date: 11/19/2024
 
 
 #include "ofApp.h"
 #include "Util.h"
-#include <glm/gtx/intersect.hpp>
-
+#include "glm/gtx/intersect.hpp"
 
 //--------------------------------------------------------------
 // setup scene, lighting, state and load geometry
@@ -25,7 +24,6 @@ void ofApp::setup(){
 	bCtrlKeyDown = false;
 	bLanderLoaded = false;
 	bTerrainSelected = true;
-	
 //	ofSetWindowShape(1024, 768);
 	cam.setDistance(10);
 	cam.setNearClip(.1);
@@ -39,131 +37,104 @@ void ofApp::setup(){
 	//
 	initLightingAndMaterials();
 
-	
+	mars.loadModel("geo/moonTerrain_size1.obj");
+	// mars.loadModel("geo/moon-houdini.obj");
+	mars.setScaleNormalization(false);
 
-	moon.loadModel("geo/moonTerrain.obj");
-	moon.setScaleNormalization(false);
-	moonTexture = false;
 	// create sliders for testing
 	//
 	gui.setup();
 	gui.add(numLevels.setup("Number of Octree Levels", 1, 1, 10));
-	gui.add(loadLander.setup("Load Lander", false));
-	gui.add(loadMoon.setup("Load Moon", false));
-	gui.add(timingInfo.setup("Timing Info", false));
+	gui.add(timingInfo.setup("Timing Info", true));
 	bHide = false;
 
 	//  Create Octree for testing.
 	//
-	startTimeOct = ofGetElapsedTimeMillis();
-
-	//comment out either mars or moon to load proper octree
 	
-	octree.create(moon.getMesh(0), 20);
+	float start = ofGetElapsedTimeMillis();
+	octree.create(mars.getMesh(0), 20);
+	float end = ofGetElapsedTimeMillis();
 	
-	endTimeOct = ofGetElapsedTimeMillis();
-
-	if (timingInfo) {
-		cout << "octree built in: " << endTimeOct - startTimeOct << " ms" << endl;
-
-	}
-
-	cout << "Number of Verts: " << moon.getMesh(0).getNumVertices() << endl;
+	if (timingInfo)
+		cout << "Octree build time: " << end - start << " milliseconds" << endl;
+	cout << "Number of Verts: " << mars.getMesh(0).getNumVertices() << endl;
 
 	testBox = Box(Vector3(3, 3, 0), Vector3(5, 5, 2));
-
-	//colors for octree
-	colors.push_back(ofColor::red);
-	colors.push_back(ofColor::orange);
-	colors.push_back(ofColor::yellow);
-	colors.push_back(ofColor::green);
-	colors.push_back(ofColor::blue);
-	colors.push_back(ofColor::purple);
-	colors.push_back(ofColor::pink);
-
-	octree.colors = &colors;
-
-	lander.loadModel("geo/lander.obj");
-	lander.setScale(0.01, 0.01, 0.01);
-	
-	collide = false;
-	reverse = false;
 }
  
 //--------------------------------------------------------------
 // incrementally update scene (animation)
 //
 void ofApp::update() {
-	//cout << "updated octree lvl: " << numLevels << endl;
+	// Lander physics simulation
+	float framerate = ofGetFrameRate();
+	float dt = (framerate > 0) ? 1.0 / framerate : 0;
 
-	if (loadLander) {
-		bLanderLoaded = true;
-	}
-	else {
-		bLanderLoaded = false;
-	}
-	if (loadMoon) {
-		moonTexture = true;
-	}
-	else {
-		moonTexture = false;
-	}
-	if (timingInfo) {
-		bTimingInfo = true;
-		//cout << "octree built in: " << endTimeOct - startTimeOct << " ms" << endl;
-	}
-	else {
-		bTimingInfo = false;
-	}
-	/*if (colBoxList.size() >= 10) {
-		cout << "collide true" << endl;
-		collide = true;
-	}
-	else {
-		cout << "collide false" << endl;
-		collide = false;
-	}*/
-	glm::vec3 currentPos = lander.getPosition();
+	//move up/down (linear)
+	landerPos = lander.getPosition() + landerVelocity * dt;
+	landerAcceleration = (1 / landerMass) * landerForce;
+	landerVelocity += landerAcceleration * dt;
+	landerVelocity *= landerDamping;
 
-	//lander reverse logic (press H)
-	if (reverse && collide) {
-		reverseMove = glm::vec3(0.0f, 0.1f, 0.0f);
-		glm::vec3 newPos = currentPos + reverseMove;
-		lander.setPosition(newPos.x, newPos.y, newPos.z);
-	}
-	else if (!collide){
-		reverse = false;
-		reverseMove = glm::vec3(0.0f, 0.0f, 0.0f);
-	}
-	
-	
+	//rotate (angular)
+	landerRot = lander.getRotationAngle(1) + landerAngularVelocity * dt;
+	landerAngularAcceleration = (0 / landerMass) * landerAngularForce;
+	landerAngularVelocity += landerAngularAcceleration * dt;
+	landerAngularVelocity *= landerDamping;
 
+	// Zero out forces
+	landerForce = glm::vec3(0, 0, 0);
+	landerAngularForce = 0;
+
+	// Update lander pos/rot
+	lander.setPosition(landerPos.x, landerPos.y, landerPos.z);
+	lander.setRotation(0, landerRot, 0, 1, 0);
+
+	// Add forces
+	landerForce += gravityForce;
+	if (keysPressed.count(' '))
+		landerForce += glm::vec3(0, 10, 0);
+	if (keysPressed.count(OF_KEY_LEFT))
+		landerAngularForce -= 100;
+	if (keysPressed.count(OF_KEY_RIGHT))
+		landerAngularForce += 100;
+
+	// Measure distance
+	glm::vec3 rayPoint = lander.getPosition();
+	glm::vec3 rayDir = glm::vec3(0, -1, 0);
+	glm::normalize(rayDir);
+	Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z), Vector3(rayDir.x, rayDir.y, rayDir.z));
+	pointSelected = octree.intersect(ray, octree.root, selectedNode);
+	Vector3 center = selectedNode.box.center();
+	float distance = glm::distance(lander.getPosition(), glm::vec3(center.x(), center.y(), center.z()));
+	cout << "Distance: " << distance << endl;
+
+	if (animateLander) {
+		ofVec3f min = lander.getSceneMin() + lander.getPosition();
+		ofVec3f max = lander.getSceneMax() + lander.getPosition();
+		Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
+
+		colBoxList.clear();
+		octree.intersect(bounds, octree.root, colBoxList);
+
+		glm::vec3 pos = lander.getPosition();
+		if (colBoxList.size() >= 10)
+			lander.setPosition(pos.x, pos.y + (10 / ofGetFrameRate()), pos.z);
+		else
+			animateLander = false;
+	}
 }
 //--------------------------------------------------------------
 void ofApp::draw() {
 
 	ofBackground(ofColor::black);
 
-	glDepthMask(false);
-	if (!bHide) gui.draw();
-	glDepthMask(true);
-
 	cam.begin();
 	ofPushMatrix();
 	if (bWireframe) {                    // wireframe mode  (include axis)
-		/*if (bTimingInfo) {
-			cout << "octree built in: " << endTimeOct - startTimeOct << " ms" << endl;
-
-		}*/
 		ofDisableLighting();
 		ofSetColor(ofColor::slateGray);
-
-		
-		if (moonTexture) {
-			moon.drawWireframe();
-			
-		}
-		
+		mars.drawWireframe();
 		if (bLanderLoaded) {
 			lander.drawWireframe();
 			if (!bTerrainSelected) drawAxis(lander.getPosition());
@@ -171,23 +142,15 @@ void ofApp::draw() {
 		if (bTerrainSelected) drawAxis(ofVec3f(0, 0, 0));
 	}
 	else {
-		/*if (bTimingInfo) {
-			cout << "octree built in: " << endTimeOct - startTimeOct << " ms" << endl;
-
-		}*/
 		ofEnableLighting();              // shaded mode
-
-		
-		if (moonTexture) {
-			moon.drawFaces();
-		}
+		mars.drawFaces();
 		ofMesh mesh;
 		if (bLanderLoaded) {
 			lander.drawFaces();
 			if (!bTerrainSelected) drawAxis(lander.getPosition());
 			if (bDisplayBBoxes) {
 				ofNoFill();
-				ofSetColor(ofColor::lightPink);
+				ofSetColor(ofColor::white);
 				for (int i = 0; i < lander.getNumMeshes(); i++) {
 					ofPushMatrix();
 					ofMultMatrix(lander.getModelMatrix());
@@ -203,38 +166,14 @@ void ofApp::draw() {
 				ofVec3f max = lander.getSceneMax() + lander.getPosition();
 
 				Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
-				ofSetColor(ofColor::lightPink);
+				ofSetColor(ofColor::white);
 				Octree::drawBox(bounds);
-				ofNoFill();
+
 				// draw colliding boxes
 				//
 				ofSetColor(ofColor::lightBlue);
 				for (int i = 0; i < colBoxList.size(); i++) {
 					Octree::drawBox(colBoxList[i]);
-
-					//detect if lander is intersecting with mesh and delete intersecting box
-					// from list if no longer overlapping
-					for (auto it = colBoxList.begin(); it != colBoxList.end(); ) {
-						bool isIntersecting = false;
-						
-						if (bounds.overlap(*it)) {
-							isIntersecting = true;
-						}
-
-						if (!isIntersecting) {
-							it = colBoxList.erase(it);
-						}
-						else {
-							++it;
-						}
-					}
-					//sets collide bool used in lander reverse logic
-					if (i >= 10) {
-						collide = true;
-					}
-					else {
-						collide = false;
-					}
 				}
 			}
 		}
@@ -246,25 +185,21 @@ void ofApp::draw() {
 	if (bDisplayPoints) {                // display points as an option    
 		glPointSize(3);
 		ofSetColor(ofColor::green);
-		
-		
-		if (moonTexture) {
-			moon.drawVertices();
-		}
+		mars.drawVertices();
 	}
 
 	// highlight selected point (draw sphere around selected point)
 	//
 	if (bPointSelected) {
 		ofSetColor(ofColor::blue);
-		ofDrawSphere(selectedPoint, 0.5);
+		ofDrawSphere(selectedPoint, .1);
 	}
 
 
 	// recursively draw octree
 	//
 	ofDisableLighting();
-	int level = numLevels;
+	int level = 0;
 	//	ofNoFill();
 
 	if (bDisplayLeafNodes) {
@@ -275,14 +210,14 @@ void ofApp::draw() {
 		ofNoFill();
 		ofSetColor(ofColor::white);
 		octree.draw(numLevels, 0);
-
-		
 	}
 
 	// if point selected, draw a sphere
 	//
 	if (pointSelected) {
-		ofVec3f p = octree.mesh.getVertex(selectedNode.points[0]);
+		// ofVec3f p = octree.mesh.getVertex(selectedNode.points[0]); // Set position at point
+		Vector3 center = selectedNode.box.center();
+		ofVec3f p = glm::vec3(center.x(), center.y(), center.z()); // Set position at center of box
 		ofVec3f d = p - cam.getPosition();
 		ofSetColor(ofColor::lightGreen);
 		ofDrawSphere(p, .02 * d.length());
@@ -290,6 +225,11 @@ void ofApp::draw() {
 
 	ofPopMatrix();
 	cam.end();
+
+	// Draw GUI last to place on top
+	glDepthMask(false);
+	if (!bHide) gui.draw();
+	glDepthMask(true);
 }
 
 
@@ -321,6 +261,7 @@ void ofApp::drawAxis(ofVec3f location) {
 
 
 void ofApp::keyPressed(int key) {
+	keysPressed.insert(key);
 
 	switch (key) {
 	case 'B':
@@ -336,13 +277,9 @@ void ofApp::keyPressed(int key) {
 	case 'f':
 		ofToggleFullscreen();
 		break;
-	case 'H': {
+	case 'H':
 	case 'h':
-		reverse = !reverse;
-		
-		//cout << "reverse" << endl;
 		break;
-	}
 	case 'L':
 	case 'l':
 		bDisplayLeafNodes = !bDisplayLeafNodes;
@@ -381,6 +318,11 @@ void ofApp::keyPressed(int key) {
 		break;
 	case OF_KEY_DEL:
 		break;
+	case OF_KEY_UP:
+		animateLander = true;
+		break;
+	case ' ':
+		landerVelocity = glm::vec3(0, 10, 0);
 	default:
 		break;
 	}
@@ -399,12 +341,10 @@ void ofApp::togglePointsDisplay() {
 }
 
 void ofApp::keyReleased(int key) {
+	keysPressed.erase(key);
 
 	switch (key) {
-	case 'H':
-	case 'h':
-		//reverse = false;
-		break;
+	
 	case OF_KEY_ALT:
 		cam.disableMouseInput();
 		bAltKeyDown = false;
@@ -432,23 +372,6 @@ void ofApp::mouseMoved(int x, int y ){
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
 
-	//determine mouse position on mesh to draw sphere
-	glm::vec3 mousePos = cam.screenToWorld(glm::vec3(x, y, 0));
-	glm::vec3 rayDir = glm::normalize(mousePos - cam.getPosition());
-
-	Ray ray(Vector3(cam.getPosition().x, cam.getPosition().y, cam.getPosition().z),
-		Vector3(rayDir.x, rayDir.y, rayDir.z));
-
-	TreeNode selectedNode;
-	if (octree.intersect(ray, octree.root, selectedNode)) {
-		
-		if (!selectedNode.points.empty()) {
-			selectedPoint = octree.mesh.getVertex(selectedNode.points[0]);
-			pointSelected = true;
-			//bPointSelected = true;
-		}
-	}
-
 	// if moving camera, don't allow mouse interaction
 	//
 	if (cam.getMouseInputEnabled()) return;
@@ -460,8 +383,6 @@ void ofApp::mousePressed(int x, int y, int button) {
 	// if rover is loaded, test for selection
 	//
 	if (bLanderLoaded) {
-		//float startTime = ofGetElapsedTimeMillis();
-
 		glm::vec3 origin = cam.getPosition();
 		glm::vec3 mouseWorld = cam.screenToWorld(glm::vec3(mouseX, mouseY, 0));
 		glm::vec3 mouseDir = glm::normalize(mouseWorld - origin);
@@ -471,17 +392,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 
 		Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
 		bool hit = bounds.intersect(Ray(Vector3(origin.x, origin.y, origin.z), Vector3(mouseDir.x, mouseDir.y, mouseDir.z)), 0, 10000);
-
-		//float endTime = ofGetElapsedTimeMillis();
-
 		if (hit) {
-			cout << "lander clicked" << endl;
-
-			/*if (bTimingInfo) {
-				cout << "ray intersection time: " << endTime - startTime << " ms" << endl;
-
-			}*/
-
 			bLanderSelected = true;
 			mouseDownPos = getMousePointOnPlane(lander.getPosition(), cam.getZAxis());
 			mouseLastPos = mouseDownPos;
@@ -498,8 +409,6 @@ void ofApp::mousePressed(int x, int y, int button) {
 }
 
 bool ofApp::raySelectWithOctree(ofVec3f &pointRet) {
-	startTimeRay = ofGetElapsedTimeMicros();
-
 	ofVec3f mouse(mouseX, mouseY);
 	ofVec3f rayPoint = cam.screenToWorld(mouse);
 	ofVec3f rayDir = rayPoint - cam.getPosition();
@@ -507,12 +416,12 @@ bool ofApp::raySelectWithOctree(ofVec3f &pointRet) {
 	Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z),
 		Vector3(rayDir.x, rayDir.y, rayDir.z));
 
+	float start = ofGetElapsedTimeMillis();
 	pointSelected = octree.intersect(ray, octree.root, selectedNode);
-	
-	endTimeRay = ofGetElapsedTimeMicros();
-	if (bTimingInfo) {
-		cout << "ray intersection time: " << (endTimeRay - startTimeRay)/1000.0 << " ms" << endl;
-	}
+	float end = ofGetElapsedTimeMillis();
+
+	if (timingInfo)
+		cout << "Ray intersection time: " << end - start << " milliseconds" << endl;
 
 	if (pointSelected) {
 		pointRet = octree.mesh.getVertex(selectedNode.points[0]);
@@ -537,8 +446,6 @@ void ofApp::mouseDragged(int x, int y, int button) {
 		glm::vec3 mousePos = getMousePointOnPlane(landerPos, cam.getZAxis());
 		glm::vec3 delta = mousePos - mouseLastPos;
 	
-		
-
 		landerPos += delta;
 		lander.setPosition(landerPos.x, landerPos.y, landerPos.z);
 		mouseLastPos = mousePos;
@@ -551,7 +458,7 @@ void ofApp::mouseDragged(int x, int y, int button) {
 		colBoxList.clear();
 		octree.intersect(bounds, octree.root, colBoxList);
 	
-		
+
 		/*if (bounds.overlap(testBox)) {
 			cout << "overlap" << endl;
 		}
@@ -751,7 +658,7 @@ glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 planePt, glm::vec3 planeNorm) {
 	glm::vec3 mouseWorld = cam.screenToWorld(glm::vec3(mouseX, mouseY, 0));
 	glm::vec3 mouseDir = glm::normalize(mouseWorld - origin);
 	float distance;
-
+	
 	bool hit = glm::intersectRayPlane(origin, mouseDir, planePt, planeNorm, distance);
 
 	if (hit) {
