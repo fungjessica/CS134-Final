@@ -47,6 +47,7 @@ void ofApp::setup(){
 	lander.setScaleNormalization(false);
 	bLanderLoaded = true;
 	lander.setPosition(0, 30, 0);
+	landerPos = glm::vec3(0, 30, 0);
 
 	// create sliders for testing
 	//
@@ -67,42 +68,92 @@ void ofApp::setup(){
 	cout << "Number of Verts: " << mars.getMesh(0).getNumVertices() << endl;
 
 	testBox = Box(Vector3(3, 3, 0), Vector3(5, 5, 2));
+
+	// load textures
+	//
+	if (!ofLoadImage(particleTex, "images/dot.png")) {
+		cout << "Particle Texture File: images/dot.png not found" << endl;
+		ofExit();
+	}
+
+	// load the shader
+	//
+#ifdef TARGET_OPENGLES
+	shader.load("shaders_gles/shader");
+#else
+	shader.load("shaders/shader");
+#endif
+
+	// Create particle forces
+	turbForce = new TurbulenceForce(ofVec3f(-3,-3, -3), ofVec3f(3, 3, 3));
+	gravityForce = new GravityForce(ofVec3f(0, -10, 0));
+	radialForce = new ImpulseRadialForce(5);
+	cyclicForce = new CyclicForce(5);
+
+	thrustEmitter.sys->addForce(turbForce);
+	thrustEmitter.sys->addForce(gravityForce);
+	thrustEmitter.sys->addForce(radialForce);
+	thrustEmitter.sys->addForce(cyclicForce);
+
+	thrustEmitter.setVelocity(ofVec3f(0, 0, 0));
+	thrustEmitter.setEmitterType(RadialEmitter);
+	thrustEmitter.setGroupSize(100);
+	thrustEmitter.setRandomLife(true);
+	thrustEmitter.setRate(10);
+	thrustEmitter.setLifespanRange(ofVec2f(2, 2));
+
+	thrustEmitter.start();
+}
+
+// load vertex buffer in preparation for rendering
+//
+void ofApp::loadVbo() {
+	if (thrustEmitter.sys->particles.size() < 1) return;
+
+	vector<ofVec3f> sizes;
+	vector<ofVec3f> points;
+	for (int i = 0; i < thrustEmitter.sys->particles.size(); i++) {
+		points.push_back(thrustEmitter.sys->particles[i].position);
+		sizes.push_back(ofVec3f(5));
+	}
+	// upload the data to the vbo
+	//
+	int total = (int)points.size();
+	vbo.clear();
+	vbo.setVertexData(&points[0], total, GL_STATIC_DRAW);
+	vbo.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
 }
  
 //--------------------------------------------------------------
 // incrementally update scene (animation)
 //
 void ofApp::update() {
+	thrustEmitter.position = landerPos;
+	thrustEmitter.update();
+
 	// Measure distance
 	glm::vec3 rayPoint = lander.getPosition();
 	glm::vec3 rayDir = glm::vec3(0, -1, 0);
 	glm::normalize(rayDir);
 	Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z), Vector3(rayDir.x, rayDir.y, rayDir.z));
-	pointSelected = octree.intersect(ray, octree.root, selectedNode);
-	Vector3 center = selectedNode.box.center();
+	TreeNode node;
+	pointSelected = octree.intersect(ray, octree.root, node);
+	Vector3 center = node.box.center();
 	distance = glm::distance(lander.getPosition(), glm::vec3(center.x(), center.y(), center.z()));
-
-	// Collision
-	ofVec3f min = lander.getSceneMin() + lander.getPosition();
-	ofVec3f max = lander.getSceneMax() + lander.getPosition();
-	Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
-
-	colBoxList.clear();
-	octree.intersect(bounds, octree.root, colBoxList);
 
 	// Lander physics simulation
 	float framerate = ofGetFrameRate();
 	float dt = (framerate > 0) ? 1.0 / framerate : 0;
 
 	//move up/down (linear)
-	landerPos = lander.getPosition() + landerVelocity * dt;
+	landerPos += landerVelocity * dt;
 	landerAcceleration = (1 / landerMass) * landerForce;
 	landerVelocity += landerAcceleration * dt;
 	landerVelocity *= landerDamping;
 
 	//rotate (angular)
-	landerRot = lander.getRotationAngle(1) + landerAngularVelocity * dt;
-	landerAngularAcceleration = (0 / landerMass) * landerAngularForce;
+	landerRot += landerAngularVelocity * dt;
+	landerAngularAcceleration = (1 / landerMass) * landerAngularForce;
 	landerAngularVelocity += landerAngularAcceleration * dt;
 	landerAngularVelocity *= landerDamping;
 
@@ -115,35 +166,55 @@ void ofApp::update() {
 	lander.setRotation(0, landerRot, 0, 1, 0);
 
 	// Add forces
-	landerForce += gravityForce;
+	landerForce += glm::vec3(0, -2, 0); // Gravity
 	if (keysPressed.count(' '))
 		landerForce += glm::vec3(0, 10, 0);
 	if (keysPressed.count(OF_KEY_LEFT))
-		landerAngularForce -= 100;
-	if (keysPressed.count(OF_KEY_RIGHT))
 		landerAngularForce += 100;
+	if (keysPressed.count(OF_KEY_RIGHT))
+		landerAngularForce -= 100;
+	if (keysPressed.count(OF_KEY_UP))
+		landerForce += glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10;
+	if (keysPressed.count(OF_KEY_DOWN))
+		landerForce -= glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10;
+
+	// Collision
+	ofVec3f min = lander.getSceneMin() + lander.getPosition();
+	ofVec3f max = lander.getSceneMax() + lander.getPosition();
+	Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
+
+	colBoxList.clear();
+	octree.intersect(bounds, octree.root, colBoxList);
+
 	if (colBoxList.size() >= 10) {
-		landerForce += glm::vec3(0, 30, 0);
-	}
-	
-	if (animateLander) {
-		ofVec3f min = lander.getSceneMin() + lander.getPosition();
-		ofVec3f max = lander.getSceneMax() + lander.getPosition();
-		Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
+		// Resolution
 
-		colBoxList.clear();
-		octree.intersect(bounds, octree.root, colBoxList);
+		/*
+		// UNFINISHED
+		Vector3 p2 = bounds.center();
 
-		glm::vec3 pos = lander.getPosition();
-		if (colBoxList.size() >= 10)
-			lander.setPosition(pos.x, pos.y + (10 / ofGetFrameRate()), pos.z);
-		else
-			animateLander = false;
+		glm::vec3 p1;
+		for (Box box : colBoxList) {
+			Vector3 center = box.center();
+			p1 += (center.x(), center.y(), center.z());
+		}
+		p1 /= colBoxList.size();
+
+		float e = 0.8; // Restitution (0-1)
+		glm::vec3 n = glm::normalize(glm::vec3(p2.x(), p2.y(), p2.z()) - p1); // Normal -- NOT FINISHED
+
+		// Calculate impulse, add force
+		glm::vec3 p = (e + 1) * (-glm::dot(landerVelocity, n)) * n * landerMass; // Impulse force
+		cout << "impulse: " << p << endl;
+		landerForce += p;
+		*/
+
+		landerForce += glm::vec3(0, 10, 0);
 	}
 }
 //--------------------------------------------------------------
 void ofApp::draw() {
-
+	loadVbo();
 	ofBackground(ofColor::black);
 
 	cam.begin();
@@ -240,13 +311,18 @@ void ofApp::draw() {
 		ofDrawSphere(p, .02 * d.length());
 	}
 
+	thrustEmitter.draw();
+	particleTex.bind();
+	vbo.draw(GL_POINTS, 0, (int)thrustEmitter.sys->particles.size());
+	particleTex.unbind();
+
 	ofPopMatrix();
 	cam.end();
 
 	// Draw GUI last to place on top
 	glDepthMask(false);
 	if (!bHide) gui.draw();
-	ofDrawBitmapString(distance, 15, 15);
+	ofDrawBitmapString("Altitude: " + to_string(distance), 15, 15);
 	glDepthMask(true);
 }
 
@@ -336,11 +412,6 @@ void ofApp::keyPressed(int key) {
 		break;
 	case OF_KEY_DEL:
 		break;
-	case OF_KEY_UP:
-		animateLander = true;
-		break;
-	case ' ':
-		landerVelocity = glm::vec3(0, 10, 0);
 	default:
 		break;
 	}

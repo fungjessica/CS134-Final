@@ -4,6 +4,8 @@
 #include "ofxGui.h"
 #include  "ofxAssimpModelLoader.h"
 #include "Octree.h"
+#include "Particle.h"
+#include "ParticleEmitter.h"
 
 class ofApp : public ofBaseApp{
 
@@ -34,6 +36,8 @@ class ofApp : public ofBaseApp{
 		bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f &point);
 		bool raySelectWithOctree(ofVec3f &pointRet);
 		glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p , glm::vec3 n);
+
+		void loadVbo();
 
 		ofEasyCam cam;
 		ofxAssimpModelLoader mars, lander;
@@ -72,9 +76,6 @@ class ofApp : public ofBaseApp{
 
 		const float selectionRange = 4.0;
 
-		// Lander animate bool
-		bool animateLander;
-
 		// Timing
 		ofxToggle timingInfo;
 
@@ -92,9 +93,25 @@ class ofApp : public ofBaseApp{
 		float landerAngularForce = 0;
 
 		// Forces
-		glm::vec3 gravityForce = glm::vec3(0, -2, 0);
+		TurbulenceForce* turbForce;
+		GravityForce* gravityForce;
+		ImpulseRadialForce* radialForce;
+		CyclicForce* cyclicForce;
 
 		std::set<int> keysPressed;
 
 		float distance;
+
+		// Particle effects
+		ParticleEmitter thrustEmitter;
+		ParticleEmitter explosionEmitter;
+
+		// textures
+		//
+		ofTexture  particleTex;
+
+		// shaders
+		//
+		ofVbo vbo;
+		ofShader shader;
 };
