@@ -33,6 +33,10 @@ void ofApp::setup(){
 	ofEnableSmoothing();
 	ofEnableDepthTest();
 
+	// texture loading
+	//
+	ofDisableArbTex();     // disable rectangular textures
+
 	// setup rudimentary lighting 
 	//
 	initLightingAndMaterials();
@@ -86,36 +90,55 @@ void ofApp::setup(){
 
 	// Create particle forces
 	turbForce = new TurbulenceForce(ofVec3f(-3,-3, -3), ofVec3f(3, 3, 3));
-	gravityForce = new GravityForce(ofVec3f(0, -10, 0));
-	radialForce = new ImpulseRadialForce(5);
-	cyclicForce = new CyclicForce(5);
+	gravityForce = new GravityForce(ofVec3f(0, -2, 0));
+	radialForce = new ImpulseRadialForce(10);
+	cyclicForce = new CyclicForce(10);
 
 	thrustEmitter.sys->addForce(turbForce);
 	thrustEmitter.sys->addForce(gravityForce);
 	thrustEmitter.sys->addForce(radialForce);
-	thrustEmitter.sys->addForce(cyclicForce);
 
-	thrustEmitter.setVelocity(ofVec3f(0, 0, 0));
-	thrustEmitter.setEmitterType(RadialEmitter);
-	thrustEmitter.setGroupSize(100);
+	thrustEmitter.setVelocity(ofVec3f(0, -10, 0));
+	thrustEmitter.setEmitterType(CircularEmitter);
+	thrustEmitter.setGroupSize(20);
+	thrustEmitter.setRate(50);
 	thrustEmitter.setRandomLife(true);
-	thrustEmitter.setRate(10);
-	thrustEmitter.setLifespanRange(ofVec2f(2, 2));
+	thrustEmitter.setLifespanRange(ofVec2f(0, 0.5));
+	thrustEmitter.setParticleRadius(10);
 
-	thrustEmitter.start();
+	thrust = false;
+
+	explosionEmitter.sys->addForce(turbForce);
+	explosionEmitter.sys->addForce(gravityForce);
+	explosionEmitter.sys->addForce(radialForce);
+
+	explosionEmitter.setVelocity(ofVec3f(0, -10, 0));
+	explosionEmitter.setEmitterType(RadialEmitter);
+	explosionEmitter.setGroupSize(500);
+	explosionEmitter.setOneShot(true);
+	explosionEmitter.setRandomLife(true);
+	explosionEmitter.setLifespanRange(ofVec2f(0, 0.5));
+	explosionEmitter.setParticleRadius(10);
+
+	explosion = false;
 }
 
 // load vertex buffer in preparation for rendering
 //
 void ofApp::loadVbo() {
-	if (thrustEmitter.sys->particles.size() < 1) return;
-
 	vector<ofVec3f> sizes;
 	vector<ofVec3f> points;
 	for (int i = 0; i < thrustEmitter.sys->particles.size(); i++) {
 		points.push_back(thrustEmitter.sys->particles[i].position);
-		sizes.push_back(ofVec3f(5));
+		sizes.push_back(ofVec3f(thrustEmitter.particleRadius));
 	}
+	for (int i = 0; i < explosionEmitter.sys->particles.size(); i++) {
+		points.push_back(explosionEmitter.sys->particles[i].position);
+		sizes.push_back(ofVec3f(explosionEmitter.particleRadius));
+	}
+
+	if (points.size() < 1) return;
+
 	// upload the data to the vbo
 	//
 	int total = (int)points.size();
@@ -129,7 +152,9 @@ void ofApp::loadVbo() {
 //
 void ofApp::update() {
 	thrustEmitter.position = landerPos;
+	explosionEmitter.position = landerPos;
 	thrustEmitter.update();
+	explosionEmitter.update();
 
 	// Measure distance
 	glm::vec3 rayPoint = lander.getPosition();
@@ -167,8 +192,23 @@ void ofApp::update() {
 
 	// Add forces
 	landerForce += glm::vec3(0, -2, 0); // Gravity
-	if (keysPressed.count(' '))
+
+	// Handle key presses
+	if (keysPressed.count(' ')) {
 		landerForce += glm::vec3(0, 10, 0);
+
+		// Start thrust particle effect
+		if (!thrust)
+			thrustEmitter.start();
+		thrust = true;
+	} else {
+		// End thrust particle effect
+		if (thrust) {
+			thrustEmitter.stop();
+			thrustEmitter.sys->reset();
+		}
+		thrust = false;
+	}
 	if (keysPressed.count(OF_KEY_LEFT))
 		landerAngularForce += 100;
 	if (keysPressed.count(OF_KEY_RIGHT))
@@ -187,26 +227,41 @@ void ofApp::update() {
 	octree.intersect(bounds, octree.root, colBoxList);
 
 	if (colBoxList.size() >= 10) {
-		// Resolution
+		// Explosion particle effect
+		if (glm::length(landerVelocity) > 3) {
+			// Start explosion particle effect
+			if (!explosion)
+				explosionEmitter.start();
+			explosion = true;
+		} else {
+			// End explosion particle effect
+			if (explosion) {
+				explosionEmitter.stop();
+				explosionEmitter.sys->reset();
+			}
+			explosion = false;
+		}
 
+		// Resolution
+		
 		/*
 		// UNFINISHED
 		Vector3 p2 = bounds.center();
+		p2 = Vector3(p2.x(), p2.y() * 2, p2.z());
 
 		glm::vec3 p1;
 		for (Box box : colBoxList) {
 			Vector3 center = box.center();
-			p1 += (center.x(), center.y(), center.z());
+			p1 += glm::normalize(glm::vec3(p2.x(), p2.y(), p2.z()) - glm::vec3(center.x(), center.y(), center.z()));
 		}
 		p1 /= colBoxList.size();
 
 		float e = 0.8; // Restitution (0-1)
-		glm::vec3 n = glm::normalize(glm::vec3(p2.x(), p2.y(), p2.z()) - p1); // Normal -- NOT FINISHED
+		glm::vec3 n = glm::normalize(p1); // Normal
 
 		// Calculate impulse, add force
 		glm::vec3 p = (e + 1) * (-glm::dot(landerVelocity, n)) * n * landerMass; // Impulse force
-		cout << "impulse: " << p << endl;
-		landerForce += p;
+		landerForce += p + (-landerForce);
 		*/
 
 		landerForce += glm::vec3(0, 10, 0);
@@ -311,18 +366,45 @@ void ofApp::draw() {
 		ofDrawSphere(p, .02 * d.length());
 	}
 
-	thrustEmitter.draw();
-	particleTex.bind();
-	vbo.draw(GL_POINTS, 0, (int)thrustEmitter.sys->particles.size());
-	particleTex.unbind();
-
 	ofPopMatrix();
 	cam.end();
+
+	// Draw Particles
+	glDepthMask(false);
+
+	ofSetColor(128, 128, 0);
+
+	// this makes everything look glowy :)
+	//
+	ofEnableBlendMode(OF_BLENDMODE_ADD);
+	ofEnablePointSprites();
+
+	shader.begin();
+	cam.begin();
+
+    thrustEmitter.draw();
+	explosionEmitter.draw();
+	particleTex.bind();
+	vbo.draw(GL_POINTS, 0, (int)thrustEmitter.sys->particles.size());
+	vbo.draw(GL_POINTS, 0, (int)explosionEmitter.sys->particles.size());
+	particleTex.unbind();
+
+	cam.end();
+	shader.end();
+
+	ofDisablePointSprites();
+	ofDisableBlendMode();
+	ofEnableAlphaBlending();
+	
+	glDepthMask(true);
 
 	// Draw GUI last to place on top
 	glDepthMask(false);
 	if (!bHide) gui.draw();
+	ofSetColor(ofColor::white);
 	ofDrawBitmapString("Altitude: " + to_string(distance), 15, 15);
+	ofDrawBitmapString("Velocity: " + to_string(landerVelocity.x) + " " + to_string(landerVelocity.y) + " " + to_string(landerVelocity.z), 15, 30);
+	ofDrawBitmapString("Fuel: " + to_string(10), 15, 45);
 	glDepthMask(true);
 }
 
@@ -445,7 +527,6 @@ void ofApp::keyReleased(int key) {
 		break;
 	default:
 		break;
-
 	}
 }
 

@@ -106,6 +106,9 @@ class ofApp : public ofBaseApp{
 		ParticleEmitter thrustEmitter;
 		ParticleEmitter explosionEmitter;
 
+		bool thrust;
+		bool explosion;
+
 		// textures
 		//
 		ofTexture  particleTex;
