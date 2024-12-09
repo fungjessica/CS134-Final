@@ -43,7 +43,7 @@ class ofApp : public ofBaseApp{
 
 		ofEasyCam cam;
 		ofxAssimpModelLoader mars, lander;
-		ofLight light;
+		ofLight light, spotlight1, spotlight2, spotlight3, spotlight4;
 		Box boundingBox, landerBounds;
 		Box testBox;
 		vector<Box> colBoxList;
