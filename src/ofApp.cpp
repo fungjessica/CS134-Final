@@ -76,10 +76,10 @@ void ofApp::setup(){
 
 	// load textures
 	//
-	/*if (!ofLoadImage(particleTex, "images/dot.png")) {
+	if (!ofLoadImage(particleTex, "images/dot.png")) {
 		cout << "Particle Texture File: images/dot.png not found" << endl;
 		ofExit();
-	}*/
+	}
 
 	// load the shader
 	//
@@ -176,9 +176,9 @@ void ofApp::setup(){
 
 	spotlight4.setDiffuseColor(ofFloatColor(1.0, 0.9, 0.8) * 3.0);  
 	spotlight4.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
-	spotlight4.setPosition(150, 60, -150);                      
+	spotlight4.setPosition(100, 60, -50);                      
 	spotlight4.setSpotlight();
-	spotlight4.setSpotlightCutOff(60);                        
+	spotlight4.setSpotlightCutOff(45);                        
 	spotlight4.setSpotConcentration(15);                     
 	spotlight4.lookAt(glm::vec3(50, 0, 50));                    
 	spotlight4.enable();
