@@ -11,7 +11,6 @@
 
 
 #include "Octree.h"
-#include "limits"
 
 
 //draw a box from a "Box" class  
@@ -193,7 +192,7 @@ void Octree::subdivide(const ofMesh & mesh, TreeNode & node, int numLevels, int 
 bool Octree::intersect(const Ray &ray, const TreeNode & node, TreeNode & nodeRtn) {
 	bool intersects = false;
 
-	if (!node.box.intersect(ray, 0, numeric_limits<float>::max()))
+	if (!node.box.intersect(ray, 0, FLT_MAX))
 		return intersects;
 
 	if (node.children.size() == 0) {

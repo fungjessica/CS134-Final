@@ -56,7 +56,7 @@ void ParticleEmitter::draw() {
 			break;
 		case SphereEmitter:
 		case RadialEmitter:
-			// ofDrawSphere(position, radius/10);  // just draw a small sphere as a placeholder
+			ofDrawSphere(position, radius/10);  // just draw a small sphere as a placeholder
 			break;
 		default:
 			break;
@@ -131,6 +131,15 @@ void ParticleEmitter::spawn(float time) {
 	case CircularEmitter:
 		particle.velocity = velocity;
 		particle.position.set(position + glm::normalize(glm::vec3(ofRandom(-1, 1), 0, ofRandom(-1, 1))));
+		break;
+	case CircularRadialEmitter:
+	{
+		ofVec3f dir = ofVec3f(ofRandom(-1, 1), ofRandom(0, 0.1), ofRandom(-1, 1));
+		float speed = velocity.length();
+		particle.velocity = dir.getNormalized() * speed;
+		particle.position.set(position + dir.getNormalized() * 3);
+	}
+	break;
 	}
 
 	// other particle attributes

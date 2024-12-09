@@ -37,7 +37,9 @@ class ofApp : public ofBaseApp{
 		bool raySelectWithOctree(ofVec3f &pointRet);
 		glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p , glm::vec3 n);
 
-		void loadVbo();
+		void loadThrustVbo();
+		void loadExplosionVbo();
+		void loadVortexRingVbo();
 
 		ofEasyCam cam;
 		ofxAssimpModelLoader mars, lander;
@@ -105,9 +107,11 @@ class ofApp : public ofBaseApp{
 		// Particle effects
 		ParticleEmitter thrustEmitter;
 		ParticleEmitter explosionEmitter;
+		ParticleEmitter vortexRingEmitter;
 
 		bool thrust;
 		bool explosion;
+		bool vortexRing;
 
 		// textures
 		//
@@ -115,6 +119,14 @@ class ofApp : public ofBaseApp{
 
 		// shaders
 		//
-		ofVbo vbo;
+		ofVbo thrustVbo;
+		ofVbo explosionVbo;
+		ofVbo vortexRingVbo;
 		ofShader shader;
+
+		// Fuel
+		float fuel, initialFuel, usedFuel, fuelStart;
+
+		// Camera view state
+		int view;
 };
