@@ -47,7 +47,7 @@ void ofApp::setup(){
 	mars.setScaleNormalization(false);
 
 	// Load lander
-	lander.loadModel("geo/lander.obj");
+	lander.loadModel("geo/ufo.obj");
 	lander.setScaleNormalization(false);
 	bLanderLoaded = true;
 	lander.setPosition(0, 30, 0);
@@ -76,10 +76,10 @@ void ofApp::setup(){
 
 	// load textures
 	//
-	if (!ofLoadImage(particleTex, "images/dot.png")) {
+	/*if (!ofLoadImage(particleTex, "images/dot.png")) {
 		cout << "Particle Texture File: images/dot.png not found" << endl;
 		ofExit();
-	}
+	}*/
 
 	// load the shader
 	//
@@ -142,6 +142,46 @@ void ofApp::setup(){
 	fuel = 120; // Fuel level (120 seconds, 2 minutes)
 	initialFuel = 120;
 	usedFuel = 0;
+
+	//spotlights for the 3 landing zones
+	ofEnableLighting();
+
+	//lighting for entire terrain
+	spotlight1.setDiffuseColor(ofFloatColor(0.9, 0.9, 0.9));  
+	spotlight1.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0)); 
+	spotlight1.setPosition(0, 500, 0);                     
+	spotlight1.setSpotlight();
+	spotlight1.setSpotlightCutOff(90);                       
+	spotlight1.setSpotConcentration(5);                      
+	spotlight1.lookAt(glm::vec3(0, 0, 0));
+	spotlight1.enable();
+
+	spotlight2.setDiffuseColor(ofFloatColor(1.0, 0.8, 0.8) * 3.0); 
+	spotlight2.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
+	spotlight2.setPosition(50, 100, 50);
+	spotlight2.setSpotlight();
+	spotlight2.setSpotlightCutOff(45);
+	spotlight2.setSpotConcentration(15);
+	spotlight2.lookAt(glm::vec3(0, 0, 0));
+	spotlight2.enable();
+
+	spotlight3.setDiffuseColor(ofFloatColor(0.8, 1.0, 0.8) * 3.0);
+	spotlight3.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
+	spotlight3.setPosition(-50, 30, 50);
+	spotlight3.setSpotlight();
+	spotlight3.setSpotlightCutOff(45);
+	spotlight3.setSpotConcentration(15);
+	spotlight3.lookAt(glm::vec3(-100, 0, 0));
+	spotlight3.enable();
+
+	spotlight4.setDiffuseColor(ofFloatColor(1.0, 0.9, 0.8) * 3.0);  
+	spotlight4.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
+	spotlight4.setPosition(150, 60, -150);                      
+	spotlight4.setSpotlight();
+	spotlight4.setSpotlightCutOff(60);                        
+	spotlight4.setSpotConcentration(15);                     
+	spotlight4.lookAt(glm::vec3(50, 0, 50));                    
+	spotlight4.enable();
 }
 
 // load vertex buffer in preparation for rendering
@@ -593,16 +633,25 @@ void ofApp::keyPressed(int key) {
 		break;
 	case 'z':
 		view++;
-		if (view > 1)
+		if (view > 2)
 			view = 0;
 
 		switch (view) {
 		case 0:
-			cam.setPosition(glm::vec3(15, 0, 0));
-			cam.setTarget(glm::vec3(0, 0, 0));
-			cam.lookAt(glm::vec3(0, 0, 0));
+			//cam.setPosition(glm::vec3(15, 0, 0));
+			//cam.setTarget(glm::vec3(0, 0, 0));
+			//cam.lookAt(glm::vec3(0, 0, 0));
+
+			cam.setPosition(lander.getPosition().x, lander.getPosition().y+10, lander.getPosition().z + 10); 
+			cam.lookAt(lander.getPosition() + glm::vec3(0, 0, 45));
 			break;
 		case 1:
+			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 20, lander.getPosition().z + 45); 
+			cam.lookAt(lander.getPosition());
+			break;
+		case 2:
+			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 50, lander.getPosition().z); 
+			cam.lookAt(lander.getPosition());
 			break;
 		}
 	default:
