@@ -90,7 +90,7 @@ void ofApp::setup(){
 #endif
 
 	// Create particle forces
-	turbForce = new TurbulenceForce(ofVec3f(-3,-3, -3), ofVec3f(3, 3, 3));
+	turbForce = new TurbulenceForce(ofVec3f(-20,-20, -20), ofVec3f(20, 20, 20));
 	gravityForce = new GravityForce(ofVec3f(0, -2, 0));
 	radialForce = new ImpulseRadialForce(10);
 	cyclicForce = new CyclicForce(10);
@@ -140,7 +140,7 @@ void ofApp::setup(){
 
 	// Setup fuel
 	fuel = 120; // Fuel level (120 seconds, 2 minutes)
-	initialFuel = 120;
+	initialFuel = fuel;
 	usedFuel = 0;
 
 	// Initalize game state
@@ -278,10 +278,10 @@ void ofApp::update() {
 		lander.setRotation(0, landerRot, 0, 1, 0);
 
 		// Add forces -----------------------------------------------------------------------------
-		landerForce += glm::vec3(0, -2, 0); // Gravity
+		landerForce += gravityForce->get() * landerMass; // Gravity
 
 		// Handle key presses -----------------------------------------------------------------------------
-		if (keysPressed.count(' ')) {
+		if (keysPressed.count(' ') && fuel > 0) {
 			landerForce += glm::vec3(0, 10, 0);
 
 			// Start thrust particle effect
@@ -296,8 +296,12 @@ void ofApp::update() {
 			// Update fuel level
 			usedFuel = ofGetElapsedTimef() - fuelStart;
 			fuel = initialFuel - usedFuel;
-		}
-		else {
+
+			// Turbulence effect
+			landerForce += glm::vec3(ofRandom(turbForce->getMin().x, turbForce->getMax().x)
+				, ofRandom(turbForce->getMin().y, turbForce->getMax().y)
+				, ofRandom(turbForce->getMin().y, turbForce->getMax().y));
+		} else {
 			// End thrust particle effect
 			if (thrust) {
 				thrustEmitter.stop();
@@ -521,7 +525,7 @@ void ofApp::draw() {
 		// Draw top left info
 		ofDrawBitmapString("Altitude: " + to_string(distance), 15, 15);
 		ofDrawBitmapString("Velocity: " + to_string(landerVelocity.x) + " " + to_string(landerVelocity.y) + " " + to_string(landerVelocity.z), 15, 30);
-		ofDrawBitmapString("Fuel: " + to_string(fuel), 15, 45);
+		ofDrawBitmapString((fuel > 0) ? "Fuel: " + to_string(fuel) : "Fuel: EMPTY!", 15, 45);
 
 		// Draw bottom right info
 		ofBitmapFont font = ofBitmapFont();

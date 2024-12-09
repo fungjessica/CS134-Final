@@ -37,6 +37,7 @@ class GravityForce: public ParticleForce {
 	ofVec3f gravity;
 public:
 	void set(const ofVec3f &g) { gravity = g; }
+	ofVec3f get() { return gravity; }
 	GravityForce(const ofVec3f & gravity);
 	void updateForce(Particle *);
 };
@@ -45,6 +46,8 @@ class TurbulenceForce : public ParticleForce {
 	ofVec3f tmin, tmax;
 public:
 	void set(const ofVec3f &min, const ofVec3f &max) { tmin = min; tmax = max; }
+	ofVec3f getMin() { return tmin; }
+	ofVec3f getMax() { return tmax; }
 	TurbulenceForce(const ofVec3f & min, const ofVec3f &max);
 	void updateForce(Particle *);
 };
