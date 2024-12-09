@@ -129,4 +129,11 @@ class ofApp : public ofBaseApp{
 
 		// Camera view state
 		int view;
+
+		// Game state
+		bool gameState;
+		bool gameOver;
+
+		// Track explosion time
+		float explosionStart;
 };
