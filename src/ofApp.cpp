@@ -266,24 +266,22 @@ void ofApp::update() {
 		lander.update();
 
 		//update camera povs
+		ofVec3f currentCamPos = cam.getPosition();
+		ofVec3f targetCamPos;
+
 		if (fPov) {
 			ofVec3f currentCamPos = cam.getPosition();
 			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 10, landerPos.z + 10);
-			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); // Smooth transition
 			cam.lookAt(landerPos + glm::vec3(0, 0, 45));
 		}
-		if (tPov) {
+		else if (tPov) {
 			ofVec3f currentCamPos = cam.getPosition();
 			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 20, landerPos.z + 45);
-			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); // Smooth transition
 			cam.lookAt(lander.getPosition());
 		}
-		if (aPov) {
-			ofVec3f currentCamPos = cam.getPosition();
-			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 50, landerPos.z);
-			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
-			cam.lookAt(lander.getPosition());
-		}
+		
 
 		// Measure distance -----------------------------------------------------------------------------
 		glm::vec3 rayPoint = lander.getPosition();
@@ -700,28 +698,31 @@ void ofApp::keyPressed(int key) {
 		break;
 	case 'z':
 		view++;
-		if (view > 2)
+		if (view > 1)
 			view = 0;
 
 		switch (view) {
 		case 0:
 			fPov = true;
-			tPov, aPov = false;
+			tPov = false;
+			aPov = false;
 			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 10, lander.getPosition().z + 10);
 			cam.lookAt(lander.getPosition() + glm::vec3(0, 0, 45));
 			break;
 		case 1:
-			fPov, aPov = false;
+			fPov = false;
+			aPov = false;
 			tPov = true;
 			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 20, lander.getPosition().z + 45);
 			cam.lookAt(lander.getPosition());
 			break;
-		case 2:
-			fPov, tPov = false;
+		/*case 2:
+			fPov = false;
+			tPov = false;
 			aPov = true;
 			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 50, lander.getPosition().z);
 			cam.lookAt(lander.getPosition());
-			break;
+			break;*/
 		}
 		break;
 	case OF_KEY_RETURN:
@@ -777,19 +778,16 @@ void ofApp::mouseMoved(int x, int y) {
 void ofApp::mousePressed(int x, int y, int button) {
 
 	// if moving camera, don't allow mouse interaction
-	//
-	if (cam.getMouseInputEnabled()) return;
-
-	// if moving camera, don't allow mouse interaction
 //
 	if (cam.getMouseInputEnabled()) return;
 
+	glm::vec3 origin = cam.getPosition();
+	glm::vec3 mouseWorld = cam.screenToWorld(glm::vec3(mouseX, mouseY, 0));
+	glm::vec3 mouseDir = glm::normalize(mouseWorld - origin);
+	
 	// if rover is loaded, test for selection
 	//
 	if (bLanderLoaded && gameState == false) {
-		glm::vec3 origin = cam.getPosition();
-		glm::vec3 mouseWorld = cam.screenToWorld(glm::vec3(mouseX, mouseY, 0));
-		glm::vec3 mouseDir = glm::normalize(mouseWorld - origin);
 
 		ofVec3f min = lander.getSceneMin() + lander.getPosition();
 		ofVec3f max = lander.getSceneMax() + lander.getPosition();
@@ -809,6 +807,34 @@ void ofApp::mousePressed(int x, int y, int button) {
 	else {
 		ofVec3f p;
 		raySelectWithOctree(p);
+	}
+
+	if (button == OF_MOUSE_BUTTON_RIGHT) {
+		glm::vec3 target;
+
+		if (bLanderLoaded) {
+			ofVec3f min = lander.getSceneMin() + lander.getPosition();
+			ofVec3f max = lander.getSceneMax() + lander.getPosition();
+			Box landerBounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
+			bool hit = landerBounds.intersect(
+				Ray(Vector3(origin.x, origin.y, origin.z), Vector3(mouseDir.x, mouseDir.y, mouseDir.z)), 0, 10000);
+
+			if (hit) {
+				target = lander.getPosition(); 
+			}
+		}
+		if (target == glm::vec3(0, 0, 0)) { 
+			float distance;
+			bool hit = glm::intersectRayPlane(origin, mouseDir, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), distance);
+			if (hit) {
+				target = origin + distance * mouseDir; 
+			}
+		}
+		if (target != glm::vec3(0, 0, 0)) {
+			cam.lookAt(target);
+			cPov = true;
+			fPov = tPov = aPov = false;
+		}
 	}
 }
 

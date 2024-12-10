@@ -135,6 +135,7 @@ public:
 	bool fPov = false;
 	bool tPov = false;
 	bool aPov = false;
+	bool cPov = false;
 
 	// Game state
 	bool gameState;
