@@ -158,40 +158,40 @@ void ofApp::setup() {
 	ofEnableLighting();
 
 	//lighting for entire terrain
-	spotlight1.setDiffuseColor(ofFloatColor(0.9, 0.9, 0.9));
+	spotlight1.setDiffuseColor(ofFloatColor(1, 1, 1));
 	spotlight1.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0));
-	spotlight1.setPosition(0, 500, 0);
+	spotlight1.setPosition(0, 900, 0);
 	spotlight1.setSpotlight();
-	spotlight1.setSpotlightCutOff(90);
+	spotlight1.setSpotlightCutOff(100);
 	spotlight1.setSpotConcentration(5);
 	spotlight1.lookAt(glm::vec3(0, 0, 0));
 	spotlight1.enable();
 
 	spotlight2.setDiffuseColor(ofFloatColor(1.0, 0.8, 0.8) * 3.0);
 	spotlight2.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
-	spotlight2.setPosition(0, 60, 0);
+	spotlight2.setPosition(-100, 100, 30);
 	spotlight2.setSpotlight();
 	spotlight2.setSpotlightCutOff(45);
 	spotlight2.setSpotConcentration(15);
-	spotlight2.lookAt(glm::vec3(0, 0, 0)); 
+	spotlight2.lookAt(glm::vec3(-100, 0, 30)); 
 	spotlight2.enable();
 
 	spotlight3.setDiffuseColor(ofFloatColor(0.8, 1.0, 0.8) * 3.0);
 	spotlight3.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
-	spotlight3.setPosition(70, 60, 120);
+	spotlight3.setPosition(110, 60, 120);
 	spotlight3.setSpotlight();
 	spotlight3.setSpotlightCutOff(45);
 	spotlight3.setSpotConcentration(15);
-	spotlight3.lookAt(glm::vec3(70, 0, 120)); 
+	spotlight3.lookAt(glm::vec3(110, 0, 120)); 
 	spotlight3.enable();
 
-	spotlight4.setDiffuseColor(ofFloatColor(0.8, 0.8, 1.0) * 3.0);
+	spotlight4.setDiffuseColor(ofFloatColor(0.8, 0.8, 1.0) * 5.0);
 	spotlight4.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
-	spotlight4.setPosition(-90, 60, -75);
+	spotlight4.setPosition(30, 70, -145);
 	spotlight4.setSpotlight();
-	spotlight4.setSpotlightCutOff(45);
-	spotlight4.setSpotConcentration(15);
-	spotlight4.lookAt(glm::vec3(-90, 0, -75)); 
+	spotlight4.setSpotlightCutOff(55);
+	spotlight4.setSpotConcentration(20); 
+	spotlight4.lookAt(glm::vec3(30, 0, -145)); 
 	spotlight4.enable();
 }
 
