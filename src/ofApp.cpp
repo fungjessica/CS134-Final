@@ -42,16 +42,16 @@ void ofApp::setup(){
 	initLightingAndMaterials();
 
 	// Load terrain
-	mars.loadModel("geo/moonTerrain_size1.obj");
-	// mars.loadModel("geo/moon-houdini.obj");
-	mars.setScaleNormalization(false);
+	moon.loadModel("geo/moonTerrain_size2.obj");
+	// moon.loadModel("geo/moon-houdini.obj");
+	moon.setScaleNormalization(false);
 
 	// Load lander
 	lander.loadModel("geo/ufo.obj");
 	lander.setScaleNormalization(false);
-	bLanderLoaded = true;
-	lander.setPosition(0, 30, 0);
-	landerPos = glm::vec3(0, 30, 0);
+	//bLanderLoaded = true;
+	lander.setPosition(0, 100, 0);
+	landerPos = glm::vec3(0, 100, 0);
 
 	// create sliders for testing
 	//
@@ -65,12 +65,12 @@ void ofApp::setup(){
 	//
 	
 	float start = ofGetElapsedTimeMillis();
-	octree.create(mars.getMesh(0), 20);
+	octree.create(moon.getMesh(0), 20);
 	float end = ofGetElapsedTimeMillis();
 	
 	if (timingInfo)
 		cout << "Octree build time: " << end - start << " milliseconds" << endl;
-	cout << "Number of Verts: " << mars.getMesh(0).getNumVertices() << endl;
+	cout << "Number of Verts: " << moon.getMesh(0).getNumVertices() << endl;
 
 	testBox = Box(Vector3(3, 3, 0), Vector3(5, 5, 2));
 
@@ -180,7 +180,7 @@ void ofApp::setup(){
 	spotlight4.setSpotlight();
 	spotlight4.setSpotlightCutOff(45);                        
 	spotlight4.setSpotConcentration(15);                     
-	spotlight4.lookAt(glm::vec3(50, 0, 50));                    
+	spotlight4.lookAt(glm::vec3(50, 0, 150));                    
 	spotlight4.enable();
 }
 
@@ -245,24 +245,13 @@ void ofApp::loadVortexRingVbo() {
 // incrementally update scene (animation)
 //
 void ofApp::update() {
+	bLanderLoaded = true;
+
 	thrustEmitter.position = landerPos;
 	explosionEmitter.position = landerPos;
 	thrustEmitter.update();
 	explosionEmitter.update();
 	vortexRingEmitter.update();
-
-	// Handle camera view
-	switch (view) {
-	case 0:
-		break;
-	case 1:
-		cam.setPosition(lander.getPosition()
-			- glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10
-			+ glm::vec3(0, 10, 0));
-		cam.setTarget(lander.getPosition());
-		cam.lookAt(lander.getPosition());
-		break;
-	}
 
 	// Measure distance -----------------------------------------------------------------------------
 	glm::vec3 rayPoint = lander.getPosition();
@@ -410,7 +399,7 @@ void ofApp::draw() {
 	if (bWireframe) {                    // wireframe mode  (include axis)
 		ofDisableLighting();
 		ofSetColor(ofColor::slateGray);
-		mars.drawWireframe();
+		moon.drawWireframe();
 		if (bLanderLoaded) {
 			lander.drawWireframe();
 			if (!bTerrainSelected) drawAxis(lander.getPosition());
@@ -419,7 +408,7 @@ void ofApp::draw() {
 	}
 	else {
 		ofEnableLighting();              // shaded mode
-		mars.drawFaces();
+		moon.drawFaces();
 		ofMesh mesh;
 		if (bLanderLoaded) {
 			lander.drawFaces();
@@ -461,7 +450,7 @@ void ofApp::draw() {
 	if (bDisplayPoints) {                // display points as an option    
 		glPointSize(3);
 		ofSetColor(ofColor::green);
-		mars.drawVertices();
+		moon.drawVertices();
 	}
 
 	// highlight selected point (draw sphere around selected point)
@@ -638,10 +627,6 @@ void ofApp::keyPressed(int key) {
 
 		switch (view) {
 		case 0:
-			//cam.setPosition(glm::vec3(15, 0, 0));
-			//cam.setTarget(glm::vec3(0, 0, 0));
-			//cam.lookAt(glm::vec3(0, 0, 0));
-
 			cam.setPosition(lander.getPosition().x, lander.getPosition().y+10, lander.getPosition().z + 10); 
 			cam.lookAt(lander.getPosition() + glm::vec3(0, 0, 45));
 			break;
@@ -727,6 +712,7 @@ void ofApp::mousePressed(int x, int y, int button) {
 			mouseDownPos = getMousePointOnPlane(lander.getPosition(), cam.getZAxis());
 			mouseLastPos = mouseDownPos;
 			bInDrag = true;
+			cout << "lander clicked" << endl;
 		}
 		else {
 			bLanderSelected = false;
@@ -770,6 +756,7 @@ void ofApp::mouseDragged(int x, int y, int button) {
 	if (cam.getMouseInputEnabled()) return;
 
 	if (bInDrag) {
+		cout << "drag???" << endl;
 
 		glm::vec3 landerPos = lander.getPosition();
 

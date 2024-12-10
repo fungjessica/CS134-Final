@@ -42,7 +42,7 @@ class ofApp : public ofBaseApp{
 		void loadVortexRingVbo();
 
 		ofEasyCam cam;
-		ofxAssimpModelLoader mars, lander;
+		ofxAssimpModelLoader moon, lander;
 		ofLight light, spotlight1, spotlight2, spotlight3, spotlight4;
 		Box boundingBox, landerBounds;
 		Box testBox;
