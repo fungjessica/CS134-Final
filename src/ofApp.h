@@ -7,126 +7,139 @@
 #include "Particle.h"
 #include "ParticleEmitter.h"
 
-class ofApp : public ofBaseApp{
+class ofApp : public ofBaseApp {
 
-	public:
-		void setup();
-		void update();
-		void draw();
+public:
+	void setup();
+	void update();
+	void draw();
 
-		void keyPressed(int key);
-		void keyReleased(int key);
-		void mouseMoved(int x, int y );
-		void mouseDragged(int x, int y, int button);
-		void mousePressed(int x, int y, int button);
-		void mouseReleased(int x, int y, int button);
-		void mouseEntered(int x, int y);
-		void mouseExited(int x, int y);
-		void windowResized(int w, int h);
-		void dragEvent2(ofDragInfo dragInfo);
-		void dragEvent(ofDragInfo dragInfo);
-		void gotMessage(ofMessage msg);
-		void drawAxis(ofVec3f);
-		void initLightingAndMaterials();
-		void savePicture();
-		void toggleWireframeMode();
-		void togglePointsDisplay();
-		void toggleSelectTerrain();
-		void setCameraTarget();
-		bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f &point);
-		bool raySelectWithOctree(ofVec3f &pointRet);
-		glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p , glm::vec3 n);
+	void keyPressed(int key);
+	void keyReleased(int key);
+	void mouseMoved(int x, int y);
+	void mouseDragged(int x, int y, int button);
+	void mousePressed(int x, int y, int button);
+	void mouseReleased(int x, int y, int button);
+	void mouseEntered(int x, int y);
+	void mouseExited(int x, int y);
+	void windowResized(int w, int h);
+	void dragEvent2(ofDragInfo dragInfo);
+	void dragEvent(ofDragInfo dragInfo);
+	void gotMessage(ofMessage msg);
+	void drawAxis(ofVec3f);
+	void initLightingAndMaterials();
+	void savePicture();
+	void toggleWireframeMode();
+	void togglePointsDisplay();
+	void toggleSelectTerrain();
+	void setCameraTarget();
+	bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f& point);
+	bool raySelectWithOctree(ofVec3f& pointRet);
+	glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p, glm::vec3 n);
 
-		void loadThrustVbo();
-		void loadExplosionVbo();
-		void loadVortexRingVbo();
+	void loadThrustVbo();
+	void loadExplosionVbo();
+	void loadVortexRingVbo();
 
-		ofEasyCam cam;
-		ofxAssimpModelLoader moon, lander;
-		ofLight light, spotlight1, spotlight2, spotlight3, spotlight4;
-		Box boundingBox, landerBounds;
-		Box testBox;
-		vector<Box> colBoxList;
-		bool bLanderSelected = false;
-		Octree octree;
-		TreeNode selectedNode;
-		glm::vec3 mouseDownPos, mouseLastPos;
-		bool bInDrag = false;
+	ofEasyCam cam;
+	ofxAssimpModelLoader moon, lander;
+	ofLight light, spotlight1, spotlight2, spotlight3, spotlight4;
+	Box boundingBox, landerBounds;
+	Box testBox;
+	vector<Box> colBoxList;
+	bool bLanderSelected = false;
+	Octree octree;
+	TreeNode selectedNode;
+	glm::vec3 mouseDownPos, mouseLastPos;
+	bool bInDrag = false;
 
 
-		ofxIntSlider numLevels;
-		ofxPanel gui;
+	ofxIntSlider numLevels;
+	ofxPanel gui;
+	ofImage background;
+	ofSpherePrimitive sky;
+	ofSoundPlayer landerBoom, thrustWhoosh;
 
-		bool bAltKeyDown;
-		bool bCtrlKeyDown;
-		bool bWireframe;
-		bool bDisplayPoints;
-		bool bPointSelected;
-		bool bHide;
-		bool pointSelected = false;
-		bool bDisplayLeafNodes = false;
-		bool bDisplayOctree = true;
-		bool bDisplayBBoxes = false;
-		
-		bool bLanderLoaded;
-		bool bTerrainSelected;
-	
-		ofVec3f selectedPoint;
-		ofVec3f intersectPoint;
+	bool bAltKeyDown;
+	bool bCtrlKeyDown;
+	bool bWireframe;
+	bool bDisplayPoints;
+	bool bPointSelected;
+	bool bHide;
+	bool pointSelected = false;
+	bool bDisplayLeafNodes = false;
+	bool bDisplayOctree = true;
+	bool bDisplayBBoxes = false;
 
-		vector<Box> bboxList;
+	bool bLanderLoaded;
+	bool bTerrainSelected;
 
-		const float selectionRange = 4.0;
+	ofVec3f selectedPoint;
+	ofVec3f intersectPoint;
 
-		// Timing
-		ofxToggle timingInfo;
+	vector<Box> bboxList;
 
-		// Lander variables
-		glm::vec3 landerPos = glm::vec3(0, 0, 0);
-		float landerRot = 0;
+	const float selectionRange = 4.0;
 
-		glm::vec3 landerVelocity = glm::vec3(0, 0, 0);
-		glm::vec3 landerAcceleration = glm::vec3(0, 0, 0);
-		glm::vec3 landerForce = glm::vec3(0, 0, 0);
-		float landerMass = 1.0;
-		float landerDamping = .99;
-		float landerAngularVelocity = 0;
-		float landerAngularAcceleration = 0;
-		float landerAngularForce = 0;
+	// Timing
+	ofxToggle timingInfo;
 
-		// Forces
-		TurbulenceForce* turbForce;
-		GravityForce* gravityForce;
-		ImpulseRadialForce* radialForce;
-		CyclicForce* cyclicForce;
+	// Lander variables
+	glm::vec3 landerPos = glm::vec3(0, 0, 0);
+	float landerRot = 0;
 
-		std::set<int> keysPressed;
+	glm::vec3 landerVelocity = glm::vec3(0, 0, 0);
+	glm::vec3 landerAcceleration = glm::vec3(0, 0, 0);
+	glm::vec3 landerForce = glm::vec3(0, 0, 0);
+	float landerMass = 1.0;
+	float landerDamping = .99;
+	float landerAngularVelocity = 0;
+	float landerAngularAcceleration = 0;
+	float landerAngularForce = 0;
 
-		float distance;
+	// Forces
+	TurbulenceForce* turbForce;
+	GravityForce* gravityForce;
+	ImpulseRadialForce* radialForce;
+	CyclicForce* cyclicForce;
 
-		// Particle effects
-		ParticleEmitter thrustEmitter;
-		ParticleEmitter explosionEmitter;
-		ParticleEmitter vortexRingEmitter;
+	std::set<int> keysPressed;
 
-		bool thrust;
-		bool explosion;
-		bool vortexRing;
+	float distance;
 
-		// textures
-		//
-		ofTexture  particleTex;
+	// Particle effects
+	ParticleEmitter thrustEmitter;
+	ParticleEmitter explosionEmitter;
+	ParticleEmitter vortexRingEmitter;
 
-		// shaders
-		//
-		ofVbo thrustVbo;
-		ofVbo explosionVbo;
-		ofVbo vortexRingVbo;
-		ofShader shader;
+	bool thrust;
+	bool explosion;
+	bool vortexRing;
 
-		// Fuel
-		float fuel, initialFuel, usedFuel, fuelStart;
+	// textures
+	//
+	ofTexture  particleTex;
 
-		// Camera view state
-		int view;
+	// shaders
+	//
+	ofVbo thrustVbo;
+	ofVbo explosionVbo;
+	ofVbo vortexRingVbo;
+	ofShader shader;
+
+	// Fuel
+	float fuel, initialFuel, usedFuel, fuelStart;
+
+	// Camera view state
+	int view;
+	bool fPov = false;
+	bool tPov = false;
+	bool aPov = false;
+
+	// Game state
+	bool gameState;
+	bool gameOver;
+
+	// Track explosion time
+	float explosionStart;
 };

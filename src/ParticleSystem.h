@@ -12,41 +12,44 @@ protected:
 public:
 	bool applyOnce = false;
 	bool applied = false;
-	virtual void updateForce(Particle *) = 0;
+	virtual void updateForce(Particle*) = 0;
 };
 
 class ParticleSystem {
 public:
-	void add(const Particle &);
-	void addForce(ParticleForce *);
+	void add(const Particle&);
+	void addForce(ParticleForce*);
 	void remove(int);
 	void update();
 	void setLifespan(float);
 	void reset();
-	int removeNear(const ofVec3f & point, float dist);
+	int removeNear(const ofVec3f& point, float dist);
 	void draw();
 	vector<Particle> particles;
-	vector<ParticleForce *> forces;
+	vector<ParticleForce*> forces;
 };
 
 
 
 // Some convenient built-in forces
 //
-class GravityForce: public ParticleForce {
+class GravityForce : public ParticleForce {
 	ofVec3f gravity;
 public:
-	void set(const ofVec3f &g) { gravity = g; }
-	GravityForce(const ofVec3f & gravity);
-	void updateForce(Particle *);
+	void set(const ofVec3f& g) { gravity = g; }
+	ofVec3f get() { return gravity; }
+	GravityForce(const ofVec3f& gravity);
+	void updateForce(Particle*);
 };
 
 class TurbulenceForce : public ParticleForce {
 	ofVec3f tmin, tmax;
 public:
-	void set(const ofVec3f &min, const ofVec3f &max) { tmin = min; tmax = max; }
-	TurbulenceForce(const ofVec3f & min, const ofVec3f &max);
-	void updateForce(Particle *);
+	void set(const ofVec3f& min, const ofVec3f& max) { tmin = min; tmax = max; }
+	ofVec3f getMin() { return tmin; }
+	ofVec3f getMax() { return tmax; }
+	TurbulenceForce(const ofVec3f& min, const ofVec3f& max);
+	void updateForce(Particle*);
 };
 
 class ImpulseRadialForce : public ParticleForce {
@@ -56,15 +59,13 @@ public:
 	void set(float mag) { magnitude = mag; }
 	void setHeight(float h) { height = h; }
 	ImpulseRadialForce(float magnitude);
-	void updateForce(Particle *);
+	void updateForce(Particle*);
 };
 
 class CyclicForce : public ParticleForce {
 	float magnitude;
 public:
 	void set(float mag) { magnitude = mag; }
-	CyclicForce(float magnitude);  
-	void updateForce(Particle *);
+	CyclicForce(float magnitude);
+	void updateForce(Particle*);
 };
-
-
