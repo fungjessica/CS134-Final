@@ -44,6 +44,9 @@ void ParticleEmitter::init() {
 	type = DirectionalEmitter;
 	groupSize = 1;
 	damping = .99;
+
+	// Set default circular emitter radius
+	circularEmitterRadius = 1;
 }
 
 
@@ -130,7 +133,7 @@ void ParticleEmitter::spawn(float time) {
 		break;
 	case CircularEmitter:
 		particle.velocity = velocity;
-		particle.position.set(position + glm::normalize(glm::vec3(ofRandom(-1, 1), 0, ofRandom(-1, 1))));
+		particle.position.set(position + glm::normalize(glm::vec3(ofRandom(-1, 1), 0, ofRandom(-1, 1))) * circularEmitterRadius);
 		break;
 	case CircularRadialEmitter:
 	{

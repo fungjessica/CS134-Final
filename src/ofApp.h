@@ -40,10 +40,11 @@ public:
 	void loadThrustVbo();
 	void loadExplosionVbo();
 	void loadVortexRingVbo();
+	void loadLandingRingVbo();
 
 	ofEasyCam cam;
 	ofxAssimpModelLoader moon, lander;
-	ofLight light, spotlight1, spotlight2, spotlight3, spotlight4;
+	ofLight light, spotlight1, spotlight2, spotlight3, spotlight4, landerLight;
 	Box boundingBox, landerBounds;
 	Box testBox;
 	vector<Box> colBoxList;
@@ -111,6 +112,7 @@ public:
 	ParticleEmitter thrustEmitter;
 	ParticleEmitter explosionEmitter;
 	ParticleEmitter vortexRingEmitter;
+	ParticleEmitter landingRingEmitter;
 
 	bool thrust;
 	bool explosion;
@@ -125,10 +127,12 @@ public:
 	ofVbo thrustVbo;
 	ofVbo explosionVbo;
 	ofVbo vortexRingVbo;
+	ofVbo landingRingVbo;
 	ofShader shader;
 
 	// Fuel
-	float fuel, initialFuel, usedFuel, fuelStart;
+	float fuelLevel, initialFuel, usedFuel, fuelStart;
+	bool fuel;
 
 	// Camera view state
 	int view;
@@ -140,7 +144,18 @@ public:
 	// Game state
 	bool gameState;
 	bool gameOver;
+	bool gameComplete;
 
 	// Track explosion time
 	float explosionStart;
+
+	// Lander toggle
+	bool bLanderLight;
+
+	// Landing position
+	glm::vec3 landing;
+	float landingRadius;
+
+	// Track time of landing completion
+	float landingStart;
 };

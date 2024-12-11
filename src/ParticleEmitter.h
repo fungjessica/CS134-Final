@@ -31,6 +31,10 @@ public:
 	void setDamping(float d) { damping = d; }
 	void update();
 	void spawn(float time);
+
+	// Method to set Circular emitter radius;
+	void setCircularEmitterRadius(const float r) { circularEmitterRadius = r; }
+
 	ParticleSystem *sys;
 	float rate;         // per sec
 	bool oneShot;
@@ -49,4 +53,7 @@ public:
 	int groupSize;      // number of particles to spawn in a group
 	bool createdSys;
 	EmitterType type;
+
+	// Circular emitter radius
+	float circularEmitterRadius;
 };
