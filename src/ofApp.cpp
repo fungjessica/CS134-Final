@@ -105,10 +105,6 @@ void ofApp::setup() {
 	gameState = false;
 	gameOver = false;
 
-	// Set landing area
-	landing = glm::vec3(-100, 32, 30);
-	landingRadius = 20;
-
 	// Create particle forces
 	turbForce = new TurbulenceForce(ofVec3f(-10, -10, -10), ofVec3f(10, 10, 10));
 	gravityForce = new GravityForce(ofVec3f(0, -2, 0));
@@ -215,6 +211,10 @@ void ofApp::setup() {
 	spotlight4.lookAt(glm::vec3(30, 0, -145)); 
 	spotlight4.enable();
 
+	// Set landing areas
+	landing = glm::vec3(-100, 32, 30);
+	landingRadius = 20;
+
 	// Lander light
 	landerLight.setDiffuseColor(ofColor::white);
 	landerLight.setSpecularColor(ofFloatColor(1.0, 1.0, 1.0) * 2.0);
@@ -227,8 +227,54 @@ void ofApp::setup() {
 
 	// Enable lander light by default
 	bLanderLight = true;
+
+	view = 1;
+	tPov = true;
+	glm::vec3 landerPos = lander.getPosition();
+	cam.setPosition(landerPos.x, landerPos.y + 20, landerPos.z + 45);
+	cam.lookAt(landerPos);
 }
 
+bool ofApp::inSpotlight(ofLight& spotlight, glm::vec3 landerPos, float angle, float radius) {
+	glm::vec3 spotlightPos = spotlight.getPosition();
+	glm::vec3 spotlightDir = glm::normalize(spotlight.getLookAtDir());
+	glm::vec3 toLander = glm::normalize(landerPos - spotlightPos);
+
+	float distance = glm::length(glm::vec3(toLander.x, toLander.y, toLander.z));
+	if (distance > radius) {
+		return false;
+	}
+	float delta = glm::degrees(glm::acos(glm::dot(spotlightDir, glm::normalize(toLander))));
+	return delta <= angle;
+}
+
+void ofApp::checkCollisionPosition(glm::vec3 landerPos) {
+	float spotlightRadius = 20.0f;
+	inLight = false;
+	gameEnd = false;
+
+	if (inSpotlight(spotlight2, landerPos, 45, spotlightRadius)) {
+		cout << "lander in spotlight 2" << endl;
+		inLight = true;
+	}
+	if (inSpotlight(spotlight3, landerPos, 45, spotlightRadius)) {
+		cout << "lander in spotlight 3" << endl;
+		inLight = true;
+	}
+	if (inSpotlight(spotlight4, landerPos, 45, spotlightRadius)) {
+		cout << "lander in spotlight 4" << endl;
+		inLight = true;
+	}
+	if (inLight) {
+		gameComplete = true;
+		landingStart = ofGetElapsedTimef();
+	}
+	else {
+		gameEnd = true;
+		cout << "not in light" << endl;
+	}
+	
+}
 // load vertex buffer in preparation for rendering
 //
 void ofApp::loadThrustVbo() {
@@ -335,12 +381,18 @@ void ofApp::update() {
 		if (fPov) {
 			ofVec3f currentCamPos = cam.getPosition();
 			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 10, landerPos.z + 10);
-			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); // Smooth transition
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); 
 			cam.lookAt(landerPos + glm::vec3(0, 0, 45));
 		} else if (tPov) {
 			ofVec3f currentCamPos = cam.getPosition();
 			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 20, landerPos.z + 45);
-			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); // Smooth transition
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); 
+			cam.lookAt(lander.getPosition());
+		}
+		else if (aPov) {
+			ofVec3f currentCamPos = cam.getPosition();
+			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 50, landerPos.z);
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1)); 
 			cam.lookAt(lander.getPosition());
 		}
 
@@ -462,7 +514,7 @@ void ofApp::update() {
 		colBoxList.clear();
 		octree.intersect(bounds, octree.root, colBoxList);
 
-		if (colBoxList.size() >= 10) {
+		if (colBoxList.size() >= 5) {
 			// Explosion (return, end game if true)
 			if (glm::length(landerVelocity) > 3) {
 				// Start explosion particle effect
@@ -476,15 +528,9 @@ void ofApp::update() {
 				landerForce += glm::vec3((ofRandom(-1, 1) > 0 ? 1 : -1) * ofRandom(1000, 5000)
 					, ofRandom(1000, 5000), (ofRandom(-1, 1) > 0 ? 1 : -1) * ofRandom(1000, 5000));
 				return;
-			} else if (glm::length(landerVelocity) < 0.5 && !gameOver && !gameComplete) {
-				glm::vec3 pos = glm::vec3(landerPos.x, 0, landerPos.z);
-				glm::vec3 dest = glm::vec3(landing.x, 0, landing.z);
-
-				// Apply game complete if lander within radius
-				if (glm::length(dest - pos) < landingRadius) {
-					gameComplete = true;
-					landingStart = ofGetElapsedTimef();
-				}
+			} else if (glm::length(landerVelocity) < 3 && !gameOver && !gameComplete && !gameEnd) {
+				checkCollisionPosition(lander.getPosition());
+				
 			}
 
 			// Resolution
@@ -516,9 +562,8 @@ void ofApp::update() {
 				if (explosion) {
 					explosionEmitter.stop();
 					explosionEmitter.sys->reset();
+					explosion = false;
 				}
-				explosion = false;
-
 				// Stop game if explosion is done playing and game is over
 				if (ofGetElapsedTimef() - explosionStart > 3)
 					gameState = false;
@@ -526,8 +571,16 @@ void ofApp::update() {
 				if (ofGetElapsedTimef() - landingStart > 3)
 					gameState = false;
 			}
+			else if (gameEnd) {
+				if (inLight) {
+					gameState = false;
+				}
+				else if (ofGetElapsedTimef() - landingStart > 3)
+					gameState = false;
+			}
 		}
 	}
+	
 }
 
 //--------------------------------------------------------------
@@ -604,18 +657,18 @@ void ofApp::draw() {
 
 
 
-	if (bDisplayPoints) {                // display points as an option    
+	/*if (bDisplayPoints) {                // display points as an option    
 		glPointSize(3);
 		ofSetColor(ofColor::green);
 		moon.drawVertices();
-	}
+	}*/
 
 	// highlight selected point (draw sphere around selected point)
 	//
-	if (bPointSelected) {
+	/*if (bPointSelected) {
 		ofSetColor(ofColor::blue);
 		ofDrawSphere(selectedPoint, .1);
-	}
+	}*/
 
 
 	// recursively draw octree
@@ -636,14 +689,14 @@ void ofApp::draw() {
 
 	// if point selected, draw a sphere
 	//
-	if (pointSelected) {
+	/*if (pointSelected) {
 		// ofVec3f p = octree.mesh.getVertex(selectedNode.points[0]); // Set position at point
 		Vector3 center = selectedNode.box.center();
 		ofVec3f p = glm::vec3(center.x(), center.y(), center.z()); // Set position at center of box
 		ofVec3f d = p - cam.getPosition();
 		ofSetColor(ofColor::lightGreen);
 		ofDrawSphere(p, .02 * d.length());
-	}
+	}*/
 
 	ofPopMatrix();
 	cam.end();
@@ -691,37 +744,48 @@ void ofApp::draw() {
 
 	if (gameState && !gameOver && !gameComplete) {
 		// Draw top left info
-		ofDrawBitmapString("Altitude: " + ofToString(distance, 2), 15, 15);
-		ofDrawBitmapString("Velocity: " + ofToString(landerVelocity.x, 2) + " " + ofToString(landerVelocity.y, 2) + " " + ofToString(landerVelocity.z, 2), 15, 30);
-		ofDrawBitmapString((fuelLevel > 0) ? "Fuel: " + ofToString(fuelLevel, 2) : "Fuel: EMPTY!", 15, 45);
+		ofDrawBitmapString("Altitude: " + ofToString(distance, 2), 15*2, 15*2);
+		ofDrawBitmapString("Velocity: " + ofToString(landerVelocity.x, 2) + " " + ofToString(landerVelocity.y, 2) + " " + ofToString(landerVelocity.z, 2), 15*2, 30*2);
+		ofDrawBitmapString((fuelLevel > 0) ? "Fuel: " + ofToString(fuelLevel, 2) : "Fuel: EMPTY!", 15*2, 45*2);
 
 		// Draw bottom right info
 		ofBitmapFont font = ofBitmapFont();
 		string text = "x: Lander Light";
 		int width = font.getBoundingBox(text, 0, 0).getWidth(); // Get width of longest text
-		ofDrawBitmapString("Space: Thrust", ofGetWidth() - width - 15, ofGetHeight() - 60);
-		ofDrawBitmapString("Arrows: Move", ofGetWidth() - width - 15, ofGetHeight() - 45);
-		ofDrawBitmapString("z: Cycle Views", ofGetWidth() - width - 15, ofGetHeight() - 30);
-		ofDrawBitmapString("x: Lander Light", ofGetWidth() - width - 15, ofGetHeight() - 15);
+		ofDrawBitmapString("Space: Thrust", ofGetWidth() - width - 15*2, ofGetHeight() - 60*2);
+		ofDrawBitmapString("Arrows: Move", ofGetWidth() - width - 15*2, ofGetHeight() - 45*2);
+		ofDrawBitmapString("z: Cycle Views", ofGetWidth() - width - 15*2, ofGetHeight() - 30*2);
+		ofDrawBitmapString("x: Lander Light", ofGetWidth() - width - 15*2, ofGetHeight() - 15*2);
 	} else if (gameState && gameOver) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Ship Exploded. Game Over!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	} else if (gameState && gameComplete) {
+	}
+	else if (gameComplete) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Landed Successfully. Game Complete!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	} else {
+	}
+	else if (gameEnd) {
+		ofBitmapFont font = ofBitmapFont();
+		string text = "Lander did not land in a spotlight! Try again.";
+		int width = font.getBoundingBox(text, 0, 0).getWidth();
+		int height = font.getBoundingBox(text, 0, 0).getHeight();
+		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
+	} else if (!gameState) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Press Enter to Begin";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
+		string instructions = "Goal: Land within the 3 spotlights and keep your velocity under -3!";
+		ofDrawBitmapString(instructions, ofGetWidth() / 2.5 - width / 2, ofGetHeight() / 2 - height / 2 + 20);
 	}
+	
 	glDepthMask(true);
 }
 
@@ -813,7 +877,7 @@ void ofApp::keyPressed(int key) {
 		break;
 	case 'z':
 		view++;
-		if (view > 1)
+		if (view > 2)
 			view = 0;
 
 		switch (view) {
@@ -831,13 +895,13 @@ void ofApp::keyPressed(int key) {
 			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 20, lander.getPosition().z + 45);
 			cam.lookAt(lander.getPosition());
 			break;
-			/*case 2:
-				fPov = false;
-				tPov = false;
-				aPov = true;
-				cam.setPosition(lander.getPosition().x, lander.getPosition().y + 50, lander.getPosition().z);
-				cam.lookAt(lander.getPosition());
-				break;*/
+		case 2:
+			fPov = false;
+			tPov = false;
+			aPov = true;
+			cam.setPosition(lander.getPosition().x, lander.getPosition().y + 50, lander.getPosition().z);
+			cam.lookAt(lander.getPosition());
+			break;
 		}
 		break;
 	case 'x':
@@ -850,6 +914,10 @@ void ofApp::keyPressed(int key) {
 			gameState = true;
 			gameOver = false;
 			gameComplete = false;
+			gameEnd = false;
+
+			lander.setPosition(0, 50, 0);
+			landerPos = glm::vec3(0, 50, 0);
 
 			// Fuel
 			fuelLevel = 120;

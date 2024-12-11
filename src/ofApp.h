@@ -36,11 +36,14 @@ public:
 	bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f& point);
 	bool raySelectWithOctree(ofVec3f& pointRet);
 	glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p, glm::vec3 n);
+	bool inSpotlight(ofLight& spotlight, glm::vec3 landerPos, float angle, float radius);
 
 	void loadThrustVbo();
 	void loadExplosionVbo();
 	void loadVortexRingVbo();
 	void loadLandingRingVbo();
+	void checkCollisionPosition(glm::vec3 landerPos);
+	bool inLight;
 
 	ofEasyCam cam;
 	ofxAssimpModelLoader moon, lander;
@@ -145,6 +148,7 @@ public:
 	bool gameState;
 	bool gameOver;
 	bool gameComplete;
+	bool gameEnd;
 
 	// Track explosion time
 	float explosionStart;
@@ -152,7 +156,7 @@ public:
 	// Lander toggle
 	bool bLanderLight;
 
-	// Landing position
+	// Landing positions
 	glm::vec3 landing;
 	float landingRadius;
 
