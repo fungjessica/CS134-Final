@@ -111,7 +111,7 @@ void ofApp::setup() {
 	// Set landing areas
 	landing = glm::vec3(-100, 72, 30);
 	landing2 = glm::vec3(110, 25, 120);
-	landing3 = glm::vec3(30, 20, -145);
+	landing3 = glm::vec3(30, 30, -146);
 	landingRadius = 20;
 
 	// Create particle forces
@@ -358,25 +358,59 @@ void ofApp::loadVortexRingVbo() {
 // load vertex buffer in preparation for rendering
 //
 void ofApp::loadLandingRingVbo() {
-	vector<ofVec3f> points;
+	if (landingRingEmitter.sys->particles.size() < 1) return;
+
 	vector<ofVec3f> sizes;
-
-	for (const auto& emitter : { &landingRingEmitter, &landingRingEmitter2, &landingRingEmitter3 }) {
-		const auto& particles = emitter->sys->particles;
-		for (const auto& particle : particles) {
-			points.push_back(particle.position);
-			sizes.emplace_back(emitter->particleRadius);
-		}
+	vector<ofVec3f> points;
+	for (int i = 0; i < landingRingEmitter.sys->particles.size(); i++) {
+		points.push_back(landingRingEmitter.sys->particles[i].position);
+		sizes.push_back(ofVec3f(landingRingEmitter.particleRadius));
 	}
-
-	if (points.empty()) return;
-
+	// upload the data to the vbo
+	//
+	int total = (int)points.size();
 	landingRingVbo.clear();
-	landingRingVbo.setVertexData(points.data(), points.size(), GL_STATIC_DRAW);
-	landingRingVbo.setNormalData(sizes.data(), sizes.size(), GL_STATIC_DRAW);
+	landingRingVbo.setVertexData(&points[0], total, GL_STATIC_DRAW);
+	landingRingVbo.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
 }
 
+// load vertex buffer in preparation for rendering
+//
+void ofApp::loadLandingRingVbo2() {
+	if (landingRingEmitter2.sys->particles.size() < 1) return;
 
+	vector<ofVec3f> sizes;
+	vector<ofVec3f> points;
+	for (int i = 0; i < landingRingEmitter2.sys->particles.size(); i++) {
+		points.push_back(landingRingEmitter2.sys->particles[i].position);
+		sizes.push_back(ofVec3f(landingRingEmitter2.particleRadius));
+	}
+	// upload the data to the vbo
+	//
+	int total = (int)points.size();
+	landingRingVbo2.clear();
+	landingRingVbo2.setVertexData(&points[0], total, GL_STATIC_DRAW);
+	landingRingVbo2.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
+}
+
+// load vertex buffer in preparation for rendering
+//
+void ofApp::loadLandingRingVbo3() {
+	if (landingRingEmitter3.sys->particles.size() < 1) return;
+
+	vector<ofVec3f> sizes;
+	vector<ofVec3f> points;
+	for (int i = 0; i < landingRingEmitter3.sys->particles.size(); i++) {
+		points.push_back(landingRingEmitter3.sys->particles[i].position);
+		sizes.push_back(ofVec3f(landingRingEmitter3.particleRadius));
+	}
+	// upload the data to the vbo
+	//
+	int total = (int)points.size();
+	landingRingVbo3.clear();
+	landingRingVbo3.setVertexData(&points[0], total, GL_STATIC_DRAW);
+	landingRingVbo3.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
+}
 
 //--------------------------------------------------------------
 // incrementally update scene (animation)
@@ -551,7 +585,6 @@ void ofApp::update() {
 				if (!explosion)
 					explosionEmitter.start();
 					landerBoom.play();
-					
 				explosionStart = ofGetElapsedTimef();
 
 				// Apply game over, explode lander in random direction
@@ -624,6 +657,8 @@ void ofApp::draw() {
 	loadExplosionVbo();
 	loadVortexRingVbo();
 	loadLandingRingVbo();
+	loadLandingRingVbo2();
+	loadLandingRingVbo3();
 	//ofBackground(ofColor::black);
 
 	// Handle lander light toggle
@@ -724,14 +759,14 @@ void ofApp::draw() {
 
 	// if point selected, draw a sphere
 	//
-	/*if (pointSelected) {
+	if (pointSelected) {
 		// ofVec3f p = octree.mesh.getVertex(selectedNode.points[0]); // Set position at point
 		Vector3 center = selectedNode.box.center();
 		ofVec3f p = glm::vec3(center.x(), center.y(), center.z()); // Set position at center of box
 		ofVec3f d = p - cam.getPosition();
 		ofSetColor(ofColor::lightGreen);
 		ofDrawSphere(p, .02 * d.length());
-	}*/
+	}
 
 	ofPopMatrix();
 	cam.end();
@@ -759,12 +794,12 @@ void ofApp::draw() {
 	vortexRingVbo.draw(GL_POINTS, 0, (int)vortexRingEmitter.sys->particles.size());
 
 	//landing ring color
-	ofSetColor(133, 224, 133); 
+	ofSetColor(133, 224, 133);
 	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter.sys->particles.size());
 	ofSetColor(133, 224, 133); 
-	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter2.sys->particles.size());
-	ofSetColor(133, 224, 133); 
-	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter3.sys->particles.size());
+	landingRingVbo2.draw(GL_POINTS, 0, (int)landingRingEmitter2.sys->particles.size());
+	ofSetColor(133, 224, 133);
+	landingRingVbo3.draw(GL_POINTS, 0, (int)landingRingEmitter3.sys->particles.size());
 
 	particleTex.unbind();
 
@@ -784,37 +819,41 @@ void ofApp::draw() {
 
 	if (gameState && !gameOver && !gameComplete) {
 		// Draw top left info
-		ofDrawBitmapString("Altitude: " + ofToString(distance, 2), 15*2, 15*2);
-		ofDrawBitmapString("Velocity: " + ofToString(landerVelocity.x, 2) + " " + ofToString(landerVelocity.y, 2) + " " + ofToString(landerVelocity.z, 2), 15*2, 30*2);
-		ofDrawBitmapString((fuelLevel > 0) ? "Fuel: " + ofToString(fuelLevel, 2) : "Fuel: EMPTY!", 15*2, 45*2);
+		ofDrawBitmapString("Altitude: " + ofToString(distance, 2), 15 * 2, 15 * 2);
+		ofDrawBitmapString("Velocity: " + ofToString(landerVelocity.x, 2) + " " + ofToString(landerVelocity.y, 2) + " " + ofToString(landerVelocity.z, 2), 15 * 2, 30 * 2);
+		ofDrawBitmapString((fuelLevel > 0) ? "Fuel: " + ofToString(fuelLevel, 2) : "Fuel: EMPTY!", 15 * 2, 45 * 2);
 
 		// Draw bottom right info
 		ofBitmapFont font = ofBitmapFont();
 		string text = "x: Lander Light";
-		int width = font.getBoundingBox(text, 0, 0).getWidth(); 
-		ofDrawBitmapString("Space: Thrust", ofGetWidth() - width - 15*2, ofGetHeight() - 60*2);
-		ofDrawBitmapString("Arrows: Move", ofGetWidth() - width - 15*2, ofGetHeight() - 45*2);
-		ofDrawBitmapString("z: Cycle Views", ofGetWidth() - width - 15*2, ofGetHeight() - 30*2);
-		ofDrawBitmapString("x: Lander Light", ofGetWidth() - width - 15*2, ofGetHeight() - 15*2);
-	} else if (gameState && gameOver) {
+		int width = font.getBoundingBox(text, 0, 0).getWidth();
+		ofDrawBitmapString("Space: Thrust", ofGetWidth() - width - 15 * 2, ofGetHeight() - 60 * 2);
+		ofDrawBitmapString("Arrows: Move", ofGetWidth() - width - 15 * 2, ofGetHeight() - 45 * 2);
+		ofDrawBitmapString("z: Cycle Views", ofGetWidth() - width - 15 * 2, ofGetHeight() - 30 * 2);
+		ofDrawBitmapString("x: Lander Light", ofGetWidth() - width - 15 * 2, ofGetHeight() - 15 * 2);
+	}
+	else if (gameState && gameOver) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Ship Exploded. Game Over!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	} else if (gameComplete) {
+	}
+	else if (gameComplete) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Landed Successfully. Game Complete!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	} else if (gameEnd) {
+	}
+	else if (gameEnd) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Lander did not land in a spotlight! Try again.";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	} else if (gameInstructions) {
+	}
+	else if (gameInstructions) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Game Controls";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
@@ -835,6 +874,7 @@ void ofApp::draw() {
 		string start = "Press Enter to start";
 		ofDrawBitmapString(start, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 140);
 	} else if (!gameState) {
+		startScreen = true;
 		ofBitmapFont font = ofBitmapFont();
 		string title = "UFO and the Grey Cheese";
 		string text = "Press Enter to Begin or P to see game controls";

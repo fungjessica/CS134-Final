@@ -43,6 +43,8 @@ public:
 	void loadExplosionVbo();
 	void loadVortexRingVbo();
 	void loadLandingRingVbo();
+	void loadLandingRingVbo2();
+	void loadLandingRingVbo3();
 	void checkCollisionPosition(glm::vec3 landerPos);
 	bool inLight;
 
@@ -132,6 +134,8 @@ public:
 	ofVbo explosionVbo;
 	ofVbo vortexRingVbo;
 	ofVbo landingRingVbo;
+	ofVbo landingRingVbo2;
+	ofVbo landingRingVbo3;
 	ofShader shader;
 
 	// Fuel
