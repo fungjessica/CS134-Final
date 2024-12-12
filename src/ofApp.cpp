@@ -605,6 +605,10 @@ void ofApp::update() {
 					gameState = false;
 			}
 		}
+		if (gameComplete) {
+			lander.setPosition(0, 50, 0);
+			landerPos = glm::vec3(0, 50, 0);
+		}
 	}
 	
 }
@@ -808,12 +812,24 @@ void ofApp::draw() {
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
 	} else if (!gameState) {
 		ofBitmapFont font = ofBitmapFont();
-		string text = "Press Enter to Begin";
+		string title = "UFO and the Grey Cheese";
+		string text = "Press Enter to Begin or P to see game controls";
+		startScreen = true;
+		int width = font.getBoundingBox(text, 0, 0).getWidth();
+		int height = font.getBoundingBox(text, 0, 0).getHeight();
+		ofDrawBitmapString(title, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
+		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2 + 20);
+	}
+	else if (gameInstructions) {
+		ofBitmapFont font = ofBitmapFont();
+		string text = "Game Controls";
+
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
 		string instructions = "Goal: Land within the 3 spotlights and keep your velocity under -3!";
 		ofDrawBitmapString(instructions, ofGetWidth() / 2.5 - width / 2, ofGetHeight() / 2 - height / 2 + 20);
+
 	}
 	
 	glDepthMask(true);
@@ -938,19 +954,27 @@ void ofApp::keyPressed(int key) {
 		bLanderLight = !bLanderLight; // Toggle lander light
 		break;
 	case OF_KEY_RETURN:
+		
 		// Reset game values
-		if (!gameState) {
+		if (!gameState || gameInstructions) {
 			// Game state
 			gameState = true;
 			gameOver = false;
 			gameComplete = false;
 			gameEnd = false;
-
+			gameInstructions = false;
+			startScreen = false;
 
 			// Fuel
 			fuelLevel = 120;
 			initialFuel = 120;
 			usedFuel = 0;
+		}
+		break;
+	case 'p':
+		if (startScreen) {
+			gameInstructions = true;
+			startScreen = false;
 		}
 		break;
 	default:

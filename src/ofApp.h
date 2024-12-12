@@ -168,4 +168,6 @@ public:
 	const int emitRate = 30;
 	const float particleRadius = 15.0f;
 
+	bool gameInstructions = false;
+	bool startScreen = true;
 };
