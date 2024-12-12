@@ -86,7 +86,10 @@ void ofApp::setup() {
 	sky.mapTexCoordsFromTexture(background.getTexture());
 
 	landerBoom.load("sounds/explosion.mp3");
+	landerBoom.setVolume(0.5);
 	thrustWhoosh.load("sounds/thrust.mp3");
+	thrustWhoosh.setVolume(0.5);
+	thrustWhoosh.setLoop(true);
 
 	// load the shader
 	//
@@ -500,6 +503,7 @@ void ofApp::update() {
 					thrustEmitter.sys->reset();
 				}
 				thrust = false;
+				thrustWhoosh.stop();
 			}
 			if (keysPressed.count(OF_KEY_LEFT))
 				landerAngularForce += 100;
@@ -547,6 +551,7 @@ void ofApp::update() {
 				if (!explosion)
 					explosionEmitter.start();
 					landerBoom.play();
+					
 				explosionStart = ofGetElapsedTimef();
 
 				// Apply game over, explode lander in random direction
@@ -753,11 +758,12 @@ void ofApp::draw() {
 	ofSetColor(230, 230, 230); // Vortex ring color
 	vortexRingVbo.draw(GL_POINTS, 0, (int)vortexRingEmitter.sys->particles.size());
 
-	ofSetColor(133, 224, 133); // Landing ring color
+	//landing ring color
+	ofSetColor(133, 224, 133); 
 	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter.sys->particles.size());
-	ofSetColor(133, 224, 133); // Landing ring color
+	ofSetColor(133, 224, 133); 
 	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter2.sys->particles.size());
-	ofSetColor(133, 224, 133); // Landing ring color
+	ofSetColor(133, 224, 133); 
 	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter3.sys->particles.size());
 
 	particleTex.unbind();
@@ -796,40 +802,46 @@ void ofApp::draw() {
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	}
-	else if (gameComplete) {
+	} else if (gameComplete) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Landed Successfully. Game Complete!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-	}
-	else if (gameEnd) {
+	} else if (gameEnd) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Lander did not land in a spotlight! Try again.";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
+	} else if (gameInstructions) {
+		ofBitmapFont font = ofBitmapFont();
+		string text = "Game Controls";
+		int width = font.getBoundingBox(text, 0, 0).getWidth();
+		int height = font.getBoundingBox(text, 0, 0).getHeight();
+		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2);
+		string goal = "Goal: Land within the 3 spotlights and keep your velocity under -3!";
+		ofDrawBitmapString(goal, ofGetWidth() / 2.5 - width / 2, ofGetHeight() / 2.5 - height / 2 + 20);
+		string space = "Space to use thruster";
+		ofDrawBitmapString(space, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 40);
+		string xLight = "x to turn lander light on/off";
+		ofDrawBitmapString(xLight, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 60);
+		string zCam = "z to swap between 3 camera views";
+		ofDrawBitmapString(zCam, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 80);
+		string cMouse = "c to move the camera";
+		ofDrawBitmapString(cMouse, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 100);
+		string rightClick = "Right click to set your own camera view";
+		ofDrawBitmapString(rightClick, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 120);
+		string start = "Press Enter to start";
+		ofDrawBitmapString(start, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 140);
 	} else if (!gameState) {
 		ofBitmapFont font = ofBitmapFont();
 		string title = "UFO and the Grey Cheese";
 		string text = "Press Enter to Begin or P to see game controls";
-		startScreen = true;
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
-		ofDrawBitmapString(title, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
+		ofDrawBitmapString(title, ofGetWidth() / 1.75 - width / 2, ofGetHeight() / 2 - height / 2);
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2 + 20);
-	}
-	else if (gameInstructions) {
-		ofBitmapFont font = ofBitmapFont();
-		string text = "Game Controls";
-
-		int width = font.getBoundingBox(text, 0, 0).getWidth();
-		int height = font.getBoundingBox(text, 0, 0).getHeight();
-		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
-		string instructions = "Goal: Land within the 3 spotlights and keep your velocity under -3!";
-		ofDrawBitmapString(instructions, ofGetWidth() / 2.5 - width / 2, ofGetHeight() / 2 - height / 2 + 20);
-
 	}
 	
 	glDepthMask(true);
@@ -975,6 +987,7 @@ void ofApp::keyPressed(int key) {
 		if (startScreen) {
 			gameInstructions = true;
 			startScreen = false;
+			cout << "instructions screen" << endl;
 		}
 		break;
 	default:
