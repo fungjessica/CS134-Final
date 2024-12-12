@@ -38,6 +38,7 @@ public:
 	glm::vec3 ofApp::getMousePointOnPlane(glm::vec3 p, glm::vec3 n);
 	bool inSpotlight(ofLight& spotlight, glm::vec3 landerPos, float angle, float radius);
 
+	void setupLandingRingEmitter(ParticleEmitter& emitter, glm::vec3 pos, glm::vec3 velocity);
 	void loadThrustVbo();
 	void loadExplosionVbo();
 	void loadVortexRingVbo();
@@ -115,7 +116,7 @@ public:
 	ParticleEmitter thrustEmitter;
 	ParticleEmitter explosionEmitter;
 	ParticleEmitter vortexRingEmitter;
-	ParticleEmitter landingRingEmitter;
+	ParticleEmitter landingRingEmitter, landingRingEmitter2, landingRingEmitter3;
 
 	bool thrust;
 	bool explosion;
@@ -157,9 +158,14 @@ public:
 	bool bLanderLight;
 
 	// Landing positions
-	glm::vec3 landing;
+	glm::vec3 landing, landing2, landing3;
 	float landingRadius;
 
 	// Track time of landing completion
 	float landingStart;
+
+	const int groupSize = 50;
+	const int emitRate = 30;
+	const float particleRadius = 15.0f;
+
 };

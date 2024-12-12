@@ -105,6 +105,12 @@ void ofApp::setup() {
 	gameState = false;
 	gameOver = false;
 
+	// Set landing areas
+	landing = glm::vec3(-100, 72, 30);
+	landing2 = glm::vec3(110, 25, 120);
+	landing3 = glm::vec3(30, 20, -145);
+	landingRadius = 20;
+
 	// Create particle forces
 	turbForce = new TurbulenceForce(ofVec3f(-10, -10, -10), ofVec3f(10, 10, 10));
 	gravityForce = new GravityForce(ofVec3f(0, -2, 0));
@@ -159,17 +165,21 @@ void ofApp::setup() {
 	landingRingEmitter.sys->addForce(gravityForce);
 	landingRingEmitter.sys->addForce(radialForce);
 
-	landingRingEmitter.setVelocity(ofVec3f(0, 3, 0));
-	landingRingEmitter.setEmitterType(CircularEmitter);
-	landingRingEmitter.setGroupSize(50);
-	landingRingEmitter.setRate(30);
-	landingRingEmitter.setRandomLife(true);
-	landingRingEmitter.setLifespanRange(ofVec2f(0, 1));
-	landingRingEmitter.setParticleRadius(15);
-	landingRingEmitter.setCircularEmitterRadius(landingRadius);
-	landingRingEmitter.setPosition(landing);
+	landingRingEmitter2.sys->addForce(turbForce);
+	landingRingEmitter2.sys->addForce(gravityForce);
+	landingRingEmitter2.sys->addForce(radialForce);
+
+	landingRingEmitter3.sys->addForce(turbForce);
+	landingRingEmitter3.sys->addForce(gravityForce);
+	landingRingEmitter3.sys->addForce(radialForce);
+
+	setupLandingRingEmitter(landingRingEmitter, landing, ofVec3f(0, 3, 0));
+	setupLandingRingEmitter(landingRingEmitter2, landing2, ofVec3f(0, 3, 0));
+	setupLandingRingEmitter(landingRingEmitter3, landing3, ofVec3f(0, 3, 0));
 
 	landingRingEmitter.start();
+	landingRingEmitter2.start();
+	landingRingEmitter3.start();
 
 	//spotlights for the 3 landing zones
 	ofEnableLighting();
@@ -210,10 +220,6 @@ void ofApp::setup() {
 	spotlight4.setSpotConcentration(20); 
 	spotlight4.lookAt(glm::vec3(30, 0, -145)); 
 	spotlight4.enable();
-
-	// Set landing areas
-	landing = glm::vec3(-100, 32, 30);
-	landingRadius = 20;
 
 	// Lander light
 	landerLight.setDiffuseColor(ofColor::white);
@@ -275,6 +281,20 @@ void ofApp::checkCollisionPosition(glm::vec3 landerPos) {
 	}
 	
 }
+
+void ofApp::setupLandingRingEmitter(ParticleEmitter& emitter, glm::vec3 pos, glm::vec3 velocity) {
+	velocity = glm::vec3(0, 3, 0);
+
+	emitter.setVelocity(velocity);
+	emitter.setEmitterType(CircularEmitter);
+	emitter.setGroupSize(50);
+	emitter.setRate(30);
+	emitter.setRandomLife(true);
+	emitter.setLifespanRange(ofVec2f(0, 1));
+	emitter.setParticleRadius(15);
+	emitter.setCircularEmitterRadius(landingRadius);
+	emitter.setPosition(pos);
+}
 // load vertex buffer in preparation for rendering
 //
 void ofApp::loadThrustVbo() {
@@ -335,21 +355,25 @@ void ofApp::loadVortexRingVbo() {
 // load vertex buffer in preparation for rendering
 //
 void ofApp::loadLandingRingVbo() {
-	if (landingRingEmitter.sys->particles.size() < 1) return;
-
-	vector<ofVec3f> sizes;
 	vector<ofVec3f> points;
-	for (int i = 0; i < landingRingEmitter.sys->particles.size(); i++) {
-		points.push_back(landingRingEmitter.sys->particles[i].position);
-		sizes.push_back(ofVec3f(landingRingEmitter.particleRadius));
+	vector<ofVec3f> sizes;
+
+	for (const auto& emitter : { &landingRingEmitter, &landingRingEmitter2, &landingRingEmitter3 }) {
+		const auto& particles = emitter->sys->particles;
+		for (const auto& particle : particles) {
+			points.push_back(particle.position);
+			sizes.emplace_back(emitter->particleRadius);
+		}
 	}
-	// upload the data to the vbo
-	//
-	int total = (int)points.size();
+
+	if (points.empty()) return;
+
 	landingRingVbo.clear();
-	landingRingVbo.setVertexData(&points[0], total, GL_STATIC_DRAW);
-	landingRingVbo.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
+	landingRingVbo.setVertexData(points.data(), points.size(), GL_STATIC_DRAW);
+	landingRingVbo.setNormalData(sizes.data(), sizes.size(), GL_STATIC_DRAW);
 }
+
+
 
 //--------------------------------------------------------------
 // incrementally update scene (animation)
@@ -367,6 +391,8 @@ void ofApp::update() {
 		explosionEmitter.update();
 		vortexRingEmitter.update();
 		landingRingEmitter.update();
+		landingRingEmitter2.update();
+		landingRingEmitter3.update();
 		lander.update();
 
 		// Point light in direction of lander movement
@@ -725,6 +751,10 @@ void ofApp::draw() {
 
 	ofSetColor(133, 224, 133); // Landing ring color
 	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter.sys->particles.size());
+	ofSetColor(133, 224, 133); // Landing ring color
+	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter2.sys->particles.size());
+	ofSetColor(133, 224, 133); // Landing ring color
+	landingRingVbo.draw(GL_POINTS, 0, (int)landingRingEmitter3.sys->particles.size());
 
 	particleTex.unbind();
 
@@ -751,7 +781,7 @@ void ofApp::draw() {
 		// Draw bottom right info
 		ofBitmapFont font = ofBitmapFont();
 		string text = "x: Lander Light";
-		int width = font.getBoundingBox(text, 0, 0).getWidth(); // Get width of longest text
+		int width = font.getBoundingBox(text, 0, 0).getWidth(); 
 		ofDrawBitmapString("Space: Thrust", ofGetWidth() - width - 15*2, ofGetHeight() - 60*2);
 		ofDrawBitmapString("Arrows: Move", ofGetWidth() - width - 15*2, ofGetHeight() - 45*2);
 		ofDrawBitmapString("z: Cycle Views", ofGetWidth() - width - 15*2, ofGetHeight() - 30*2);
@@ -916,8 +946,6 @@ void ofApp::keyPressed(int key) {
 			gameComplete = false;
 			gameEnd = false;
 
-			lander.setPosition(0, 50, 0);
-			landerPos = glm::vec3(0, 50, 0);
 
 			// Fuel
 			fuelLevel = 120;
@@ -1005,32 +1033,9 @@ void ofApp::mousePressed(int x, int y, int button) {
 		raySelectWithOctree(p);
 	}
 
+	//retarget camera view
 	if (button == OF_MOUSE_BUTTON_RIGHT) {
-		glm::vec3 target;
-
-		if (bLanderLoaded) {
-			ofVec3f min = lander.getSceneMin() + lander.getPosition();
-			ofVec3f max = lander.getSceneMax() + lander.getPosition();
-			Box landerBounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
-			bool hit = landerBounds.intersect(
-				Ray(Vector3(origin.x, origin.y, origin.z), Vector3(mouseDir.x, mouseDir.y, mouseDir.z)), 0, 10000);
-
-			if (hit) {
-				target = lander.getPosition();
-			}
-		}
-		if (target == glm::vec3(0, 0, 0)) {
-			float distance;
-			bool hit = glm::intersectRayPlane(origin, mouseDir, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), distance);
-			if (hit) {
-				target = origin + distance * mouseDir;
-			}
-		}
-		if (target != glm::vec3(0, 0, 0)) {
-			cam.lookAt(target);
-			cPov = true;
-			fPov = tPov = aPov = false;
-		}
+		setCameraTarget();
 	}
 }
 
@@ -1113,7 +1118,35 @@ void ofApp::mouseReleased(int x, int y, int button) {
 // Set the camera to use the selected point as it's new target
 //  
 void ofApp::setCameraTarget() {
+	glm::vec3 origin = cam.getPosition();
+	glm::vec3 mouseWorld = cam.screenToWorld(glm::vec3(mouseX, mouseY, 0));
+	glm::vec3 mouseDir = glm::normalize(mouseWorld - origin);
 
+	glm::vec3 target;
+
+	if (bLanderLoaded) {
+		ofVec3f min = lander.getSceneMin() + lander.getPosition();
+		ofVec3f max = lander.getSceneMax() + lander.getPosition();
+		Box landerBounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
+		bool hit = landerBounds.intersect(
+			Ray(Vector3(origin.x, origin.y, origin.z), Vector3(mouseDir.x, mouseDir.y, mouseDir.z)), 0, 10000);
+
+		if (hit) {
+			target = lander.getPosition();
+		}
+	}
+	if (target == glm::vec3(0, 0, 0)) {
+		float distance;
+		bool hit = glm::intersectRayPlane(origin, mouseDir, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), distance);
+		if (hit) {
+			target = origin + distance * mouseDir;
+		}
+	}
+	if (target != glm::vec3(0, 0, 0)) {
+		cam.lookAt(target);
+		cPov = true;
+		fPov = tPov = aPov = false;
+	}
 }
 
 
