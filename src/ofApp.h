@@ -23,10 +23,7 @@ public:
 	void mouseEntered(int x, int y);
 	void mouseExited(int x, int y);
 	void windowResized(int w, int h);
-	void dragEvent2(ofDragInfo dragInfo);
-	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
-	void drawAxis(ofVec3f);
 	void initLightingAndMaterials();
 	void savePicture();
 	void toggleWireframeMode();
@@ -60,9 +57,6 @@ public:
 	glm::vec3 mouseDownPos, mouseLastPos;
 	bool bInDrag = false;
 
-
-	ofxIntSlider numLevels;
-	ofxPanel gui;
 	ofImage background;
 	ofSpherePrimitive sky;
 	ofSoundPlayer landerBoom, thrustWhoosh;
@@ -72,7 +66,6 @@ public:
 	bool bWireframe;
 	bool bDisplayPoints;
 	bool bPointSelected;
-	bool bHide;
 	bool pointSelected = false;
 	bool bDisplayLeafNodes = false;
 	bool bDisplayOctree = true;
@@ -87,9 +80,6 @@ public:
 	vector<Box> bboxList;
 
 	const float selectionRange = 4.0;
-
-	// Timing
-	ofxToggle timingInfo;
 
 	// Lander variables
 	glm::vec3 landerPos = glm::vec3(0, 0, 0);
@@ -108,7 +98,6 @@ public:
 	TurbulenceForce* turbForce;
 	GravityForce* gravityForce;
 	ImpulseRadialForce* radialForce;
-	CyclicForce* cyclicForce;
 
 	std::set<int> keysPressed;
 
@@ -174,4 +163,7 @@ public:
 
 	bool gameInstructions = false;
 	bool startScreen = true;
+
+	// AGL toggle
+	bool bAGL = true;
 };
