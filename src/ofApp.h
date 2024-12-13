@@ -26,9 +26,6 @@ public:
 	void gotMessage(ofMessage msg);
 	void initLightingAndMaterials();
 	void savePicture();
-	void toggleWireframeMode();
-	void togglePointsDisplay();
-	void toggleSelectTerrain();
 	void setCameraTarget();
 	bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f& point);
 	bool raySelectWithOctree(ofVec3f& pointRet);
@@ -43,6 +40,8 @@ public:
 	void loadLandingRingVbo2();
 	void loadLandingRingVbo3();
 	void checkCollisionPosition(glm::vec3 landerPos);
+	void stopGame();
+
 	bool inLight;
 
 	ofEasyCam cam;
@@ -63,13 +62,8 @@ public:
 
 	bool bAltKeyDown;
 	bool bCtrlKeyDown;
-	bool bWireframe;
-	bool bDisplayPoints;
 	bool bPointSelected;
 	bool pointSelected = false;
-	bool bDisplayLeafNodes = false;
-	bool bDisplayOctree = true;
-	bool bDisplayBBoxes = false;
 
 	bool bLanderLoaded;
 	bool bTerrainSelected;

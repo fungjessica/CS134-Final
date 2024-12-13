@@ -12,13 +12,12 @@
 // setup scene, lighting, state and load geometry
 //
 void ofApp::setup() {
-	bWireframe = false;
-	bDisplayPoints = false;
 	bAltKeyDown = false;
 	bCtrlKeyDown = false;
 	bLanderLoaded = false;
 	bTerrainSelected = true;
 	ofSetWindowShape(1280, 768);
+	ofSetFrameRate(60);
 	cam.setDistance(10);
 	cam.setNearClip(.1);
 	cam.setFov(65.5);   // approx equivalent to 28mm in 35mm format
@@ -37,7 +36,6 @@ void ofApp::setup() {
 
 	// Load terrain
 	moon.loadModel("geo/moonTerrain_size2.obj");
-	// moon.loadModel("geo/moon-houdini.obj");
 	moon.setScaleNormalization(false);
 
 	// Load lander
@@ -86,8 +84,8 @@ void ofApp::setup() {
 	gameOver = false;
 
 	// Set landing areas
-	landing = glm::vec3(-100, 74, 30);
-	landing2 = glm::vec3(110, 25, 120);
+	landing = glm::vec3(-100, 75, 30);
+	landing2 = glm::vec3(110, 26, 120);
 	landing3 = glm::vec3(30, 30, -146);
 	landingRadius = 20;
 
@@ -250,15 +248,13 @@ void ofApp::checkCollisionPosition(glm::vec3 landerPos) {
 		cout << "lander in spotlight 4" << endl;
 		inLight = true;
 	}
+
 	if (inLight) {
 		gameComplete = true;
-		landingStart = ofGetElapsedTimef();
-	}
-	else {
+	} else {
 		gameEnd = true;
 		cout << "not in light" << endl;
 	}
-	
 }
 
 void ofApp::setupLandingRingEmitter(ParticleEmitter& emitter, glm::vec3 pos, glm::vec3 velocity) {
@@ -388,34 +384,36 @@ void ofApp::loadLandingRingVbo3() {
 	landingRingVbo3.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
 }
 
+void ofApp::stopGame() {
+	gameState = false;
+
+	// Reset lander position/rotation
+	lander.setPosition(0, 50, 0);
+	lander.setRotation(0, 0, 0, 1, 0);
+	landerPos = glm::vec3(0, 50, 0);
+	landerRot = 0;
+	landerVelocity = glm::vec3(0, 0, 0);
+
+	// Set camera
+	cam.setPosition(lander.getPosition().x, lander.getPosition().y + 20, lander.getPosition().z + 45);
+	cam.lookAt(lander.getPosition());
+	fPov = false;
+	aPov = false;
+	tPov = true;
+
+	// Remove particle effects
+	for (int i = thrustEmitter.sys->particles.size() - 1; i > -1; i--)
+		thrustEmitter.sys->remove(i);
+	for (int i = explosionEmitter.sys->particles.size() - 1; i > -1; i--)
+		explosionEmitter.sys->remove(i);
+	for (int i = vortexRingEmitter.sys->particles.size() - 1; i > -1; i--)
+		vortexRingEmitter.sys->remove(i);
+}
+
 //--------------------------------------------------------------
 // incrementally update scene (animation)
 //
 void ofApp::update() {
-	//update camera povs
-	ofVec3f currentCamPos = cam.getPosition();
-	ofVec3f targetCamPos;
-
-	if (fPov) {
-		ofVec3f currentCamPos = cam.getPosition();
-		ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 10, landerPos.z);
-		cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
-		cam.lookAt(landerPos + glm::vec3(0, 10, 0)
-			+ glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10);
-	}
-	else if (tPov) {
-		ofVec3f currentCamPos = cam.getPosition();
-		ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 20, landerPos.z + 45);
-		cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
-		cam.lookAt(lander.getPosition());
-	}
-	else if (aPov) {
-		ofVec3f currentCamPos = cam.getPosition();
-		ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 50, landerPos.z);
-		cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
-		cam.lookAt(lander.getPosition());
-	}
-
 	if (gameState) {
 		// Update positions
 		landerPos = lander.getPosition();
@@ -436,6 +434,29 @@ void ofApp::update() {
 		landerLight.lookAt(lander.getPosition() 
 			+ glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 50
 			+ glm::vec3(0, -50, 0) * 2);
+
+		//update camera povs
+		ofVec3f currentCamPos = cam.getPosition();
+		ofVec3f targetCamPos;
+		if (fPov) {
+			ofVec3f currentCamPos = cam.getPosition();
+			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 10, landerPos.z);
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
+			cam.lookAt(landerPos + glm::vec3(0, 10, 0)
+				+ glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10);
+		}
+		else if (tPov) {
+			ofVec3f currentCamPos = cam.getPosition();
+			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 20, landerPos.z + 45);
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
+			cam.lookAt(lander.getPosition());
+		}
+		else if (aPov) {
+			ofVec3f currentCamPos = cam.getPosition();
+			ofVec3f targetCamPos = ofVec3f(landerPos.x, landerPos.y + 50, landerPos.z);
+			cam.setPosition(currentCamPos.interpolate(targetCamPos, 0.1));
+			cam.lookAt(lander.getPosition());
+		}
 
 		// Measure distance -----------------------------------------------------------------------------
 		if (bAGL) {
@@ -494,7 +515,7 @@ void ofApp::update() {
 		landerForce += gravityForce->get() * landerMass; // Gravity
 
 		// Handle key presses -----------------------------------------------------------------------------
-		if (!gameOver && !gameComplete) {
+		if (!gameOver && !gameComplete && !gameEnd) {
 			if (keysPressed.count(' ') && fuelLevel > 0) {
 				landerForce += glm::vec3(0, 10, 0);
 
@@ -519,14 +540,17 @@ void ofApp::update() {
 				thrust = false;
 				thrustWhoosh.stop();
 			}
-			if (keysPressed.count(OF_KEY_LEFT))
-				landerAngularForce += 100;
-			if (keysPressed.count(OF_KEY_RIGHT))
-				landerAngularForce -= 100;
-			if (keysPressed.count(OF_KEY_UP))
-				landerForce += glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10;
-			if (keysPressed.count(OF_KEY_DOWN))
-				landerForce -= glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10;
+
+			if (fuelLevel > 0) {
+				if (keysPressed.count(OF_KEY_LEFT))
+					landerAngularForce += 100;
+				if (keysPressed.count(OF_KEY_RIGHT))
+					landerAngularForce -= 100;
+				if (keysPressed.count(OF_KEY_UP))
+					landerForce += glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10;
+				if (keysPressed.count(OF_KEY_DOWN))
+					landerForce -= glm::vec3(glm::rotate(glm::mat4(1.0), glm::radians(landerRot), glm::vec3(0, 1, 0)) * glm::vec4(1, 0, 0, 1)) * 10;
+			}
 
 			// Track fuel consumption
 			if ((keysPressed.count(' ') || keysPressed.count(OF_KEY_LEFT) || keysPressed.count(OF_KEY_RIGHT)
@@ -549,6 +573,15 @@ void ofApp::update() {
 				fuel = false;
 			}
 		}
+		else {
+			// End thrust effect if still playing
+			if (thrust) {
+				thrustEmitter.stop();
+				thrustEmitter.sys->reset();
+			}
+			thrust = false;
+			thrustWhoosh.stop();
+		}
 
 		// Collision -----------------------------------------------------------------------------
 		ofVec3f min = lander.getSceneMin() + lander.getPosition();
@@ -560,19 +593,19 @@ void ofApp::update() {
 
 		if (colBoxList.size() >= 5) {
 			// Explosion (return, end game if true)
-			if (glm::length(landerVelocity) > 3) {
+			if (glm::length(landerVelocity) > 3 && !gameOver && !gameComplete && !gameEnd) {
 				// Start explosion particle effect
 				if (!explosion)
 					explosionEmitter.start();
 					landerBoom.play();
 				explosionStart = ofGetElapsedTimef();
 
-				// Apply game over, explode lander in random direction
+				// Apply game over, explode lander in random upward direction
 				gameOver = true;
-				landerForce += glm::vec3((ofRandom(-1, 1) > 0 ? 1 : -1) * ofRandom(1000, 5000)
-					, ofRandom(1000, 5000), (ofRandom(-1, 1) > 0 ? 1 : -1) * ofRandom(1000, 5000));
+				landerForce += glm::vec3((ofRandom(-1, 1) > 0 ? 1 : -1) * 3000, 3000, (ofRandom(-1, 1) > 0 ? 1 : -1) * 3000);
 				return;
 			} else if (glm::length(landerVelocity) < 3 && !gameOver && !gameComplete && !gameEnd) {
+				landingStart = ofGetElapsedTimef();
 				checkCollisionPosition(lander.getPosition());
 			}
 
@@ -608,39 +641,15 @@ void ofApp::update() {
 					explosion = false;
 				}
 				// Stop game if explosion is done playing and game is over
-				if (ofGetElapsedTimef() - explosionStart > 3) {
-					gameState = false;
-
-					// Reset lander position/rotation
-					lander.setPosition(0, 50, 0);
-					lander.setRotation(0, 0, 0, 1, 0);
-					landerPos = glm::vec3(0, 50, 0);
-					landerRot = 0;
-				}
+				if (ofGetElapsedTimef() - explosionStart > 3)
+					stopGame();
 			} else if (gameComplete) {
-				if (ofGetElapsedTimef() - landingStart > 3) {
-					gameState = false;
-
-					// Reset lander position/rotation
-					lander.setPosition(0, 50, 0);
-					lander.setRotation(0, 0, 0, 1, 0);
-					landerPos = glm::vec3(0, 50, 0);
-					landerRot = 0;
-				}
+				if (ofGetElapsedTimef() - landingStart > 3)
+					stopGame();
 			}
 			else if (gameEnd) {
-				if (inLight) {
-					gameState = false;
-				}
-				else if (ofGetElapsedTimef() - landingStart > 3) {
-					gameState = false;
-
-					// Reset lander position/rotation
-					lander.setPosition(0, 50, 0);
-					lander.setRotation(0, 0, 0, 1, 0);
-					landerPos = glm::vec3(0, 50, 0);
-					landerRot = 0;
-				}
+				if (ofGetElapsedTimef() - landingStart > 3)
+					stopGame();
 			}
 		}
 	}
@@ -655,7 +664,6 @@ void ofApp::draw() {
 	loadLandingRingVbo();
 	loadLandingRingVbo2();
 	loadLandingRingVbo3();
-	//ofBackground(ofColor::black);
 
 	// Handle lander light toggle
 	if (bLanderLight)
@@ -664,6 +672,7 @@ void ofApp::draw() {
 		landerLight.disable();
 
 	cam.begin();
+
 	ofEnableDepthTest();  
 	background.getTexture().bind();  
 	sky.draw();
@@ -671,51 +680,11 @@ void ofApp::draw() {
 
 	ofPushMatrix();
 	
-
 	ofEnableLighting();              // shaded mode
 	moon.drawFaces();
-	ofMesh mesh;
-	if (bLanderLoaded) {
+	if (bLanderLoaded)
 		lander.drawFaces();
-		if (bDisplayBBoxes) {
-			ofNoFill();
-			ofSetColor(ofColor::white);
-			for (int i = 0; i < lander.getNumMeshes(); i++) {
-				ofPushMatrix();
-				ofMultMatrix(lander.getModelMatrix());
-				ofRotate(-90, 1, 0, 0);
-				Octree::drawBox(bboxList[i]);
-				ofPopMatrix();
-			}
-		}
-
-		if (bLanderSelected) {
-
-			ofVec3f min = lander.getSceneMin() + lander.getPosition();
-			ofVec3f max = lander.getSceneMax() + lander.getPosition();
-
-			Box bounds = Box(Vector3(min.x, min.y, min.z), Vector3(max.x, max.y, max.z));
-			ofSetColor(ofColor::white);
-			Octree::drawBox(bounds);
-		}
-	}
-
-	// recursively draw octree
-	//
 	ofDisableLighting();
-	int level = 0;
-	//	ofNoFill();
-
-	// if point selected, draw a sphere
-	//
-	if (pointSelected) {
-		// ofVec3f p = octree.mesh.getVertex(selectedNode.points[0]); // Set position at point
-		Vector3 center = selectedNode.box.center();
-		ofVec3f p = glm::vec3(center.x(), center.y(), center.z()); // Set position at center of box
-		ofVec3f d = p - cam.getPosition();
-		ofSetColor(ofColor::lightGreen);
-		ofDrawSphere(p, .02 * d.length());
-	}
 
 	ofPopMatrix();
 	cam.end();
@@ -765,7 +734,7 @@ void ofApp::draw() {
 	glDepthMask(false);
 	ofSetColor(ofColor::white);
 
-	if (gameState && !gameOver && !gameComplete) {
+	if (gameState && !gameOver && !gameComplete && !gameEnd) {
 		// Draw top left info
 		ofDrawBitmapString("Velocity: " + ofToString(landerVelocity.x, 2) + " " + ofToString(landerVelocity.y, 2) + " " + ofToString(landerVelocity.z, 2), 15 * 2, 15 * 2);
 		ofDrawBitmapString((fuelLevel > 0) ? "Fuel: " + ofToString(fuelLevel, 2) : "Fuel: EMPTY!", 15 * 2, 30 * 2);
@@ -782,21 +751,21 @@ void ofApp::draw() {
 		ofDrawBitmapString("x: Lander Light", ofGetWidth() - width - 15 * 2, ofGetHeight() - 30 * 2);
 		ofDrawBitmapString("n: AGL", ofGetWidth() - width - 15 * 2, ofGetHeight() - 15 * 2);
 	}
-	else if (gameState && gameOver) {
+	else if (gameState && gameOver && !gameComplete && !gameEnd) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Ship Exploded. Game Over!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
 	}
-	else if (gameComplete) {
+	else if (gameState && gameComplete && !gameOver && !gameEnd) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Landed Successfully. Game Complete!";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2 - height / 2);
 	}
-	else if (gameEnd) {
+	else if (gameState && gameEnd && !gameOver && !gameComplete) {
 		ofBitmapFont font = ofBitmapFont();
 		string text = "Lander did not land in a spotlight! Try again.";
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
@@ -809,7 +778,7 @@ void ofApp::draw() {
 		int width = font.getBoundingBox(text, 0, 0).getWidth();
 		int height = font.getBoundingBox(text, 0, 0).getHeight();
 		ofDrawBitmapString(text, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2);
-		string goal = "Goal: Land within the 3 spotlights and keep your velocity under -3!";
+		string goal = "Goal: Land within the 3 spotlights and keep your velocity under 3!";
 		ofDrawBitmapString(goal, ofGetWidth() / 2.5 - width / 2, ofGetHeight() / 2.5 - height / 2 + 20);
 		string space = "Space to use thruster";
 		ofDrawBitmapString(space, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 40);
@@ -823,7 +792,8 @@ void ofApp::draw() {
 		ofDrawBitmapString(rightClick, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 120);
 		string start = "Press Enter to start";
 		ofDrawBitmapString(start, ofGetWidth() / 2 - width / 2, ofGetHeight() / 2.5 - height / 2 + 140);
-	} else if (!gameState) {
+	}
+	else if (!gameState) {
 		startScreen = true;
 		ofBitmapFont font = ofBitmapFont();
 		string title = "UFO and the Grey Cheese";
@@ -842,9 +812,6 @@ void ofApp::keyPressed(int key) {
 
 	switch (key) {
 	case 'B':
-	case 'b':
-		bDisplayBBoxes = !bDisplayBBoxes;
-		break;
 	case 'C':
 	case 'c':
 		if (cam.getMouseInputEnabled()) cam.disableMouseInput();
@@ -854,17 +821,6 @@ void ofApp::keyPressed(int key) {
 	case 'f':
 		ofToggleFullscreen();
 		break;
-	case 'H':
-	case 'h':
-		break;
-	case 'L':
-	case 'l':
-		bDisplayLeafNodes = !bDisplayLeafNodes;
-		break;
-	case 'O':
-	case 'o':
-		bDisplayOctree = !bDisplayOctree;
-		break;
 	case 'r':
 		cam.reset();
 		break;
@@ -873,16 +829,6 @@ void ofApp::keyPressed(int key) {
 		break;
 	case 't':
 		setCameraTarget();
-		break;
-	case 'u':
-		break;
-	case 'v':
-		togglePointsDisplay();
-		break;
-	case 'V':
-		break;
-	case 'w':
-		toggleWireframeMode();
 		break;
 	case OF_KEY_ALT:
 		cam.enableMouseInput();
@@ -928,6 +874,7 @@ void ofApp::keyPressed(int key) {
 		bLanderLight = !bLanderLight; // Toggle lander light
 		break;
 	case OF_KEY_RETURN:
+		
 		// Reset game values
 		if (!gameState || gameInstructions) {
 			// Game state
@@ -959,18 +906,6 @@ void ofApp::keyPressed(int key) {
 	}
 }
 
-void ofApp::toggleWireframeMode() {
-	bWireframe = !bWireframe;
-}
-
-void ofApp::toggleSelectTerrain() {
-	bTerrainSelected = !bTerrainSelected;
-}
-
-void ofApp::togglePointsDisplay() {
-	bDisplayPoints = !bDisplayPoints;
-}
-
 void ofApp::keyReleased(int key) {
 	keysPressed.erase(key);
 
@@ -990,14 +925,11 @@ void ofApp::keyReleased(int key) {
 	}
 }
 
-
-
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y) {
 
 
 }
-
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
@@ -1048,9 +980,8 @@ bool ofApp::raySelectWithOctree(ofVec3f& pointRet) {
 	Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z),
 		Vector3(rayDir.x, rayDir.y, rayDir.z));
 
-	float start = ofGetElapsedTimeMillis();
 	pointSelected = octree.intersect(ray, octree.root, selectedNode);
-	float end = ofGetElapsedTimeMillis();
+	Vector3 center = selectedNode.box.center();
 
 	if (pointSelected) {
 		pointRet = octree.mesh.getVertex(selectedNode.points[0]);
@@ -1158,8 +1089,6 @@ void ofApp::windowResized(int w, int h) {
 void ofApp::gotMessage(ofMessage msg) {
 
 }
-
-
 
 //--------------------------------------------------------------
 // setup basic ambient lighting in GL  (for now, enable just 1 light)
