@@ -218,6 +218,10 @@ void ofApp::setup() {
 	cam.lookAt(landerPos);
 }
 
+// Check if in spotlight
+//
+// Jessica Fung
+//
 bool ofApp::inSpotlight(ofLight& spotlight, glm::vec3 landerPos, float angle, float radius) {
 	glm::vec3 spotlightPos = spotlight.getPosition();
 	glm::vec3 spotlightDir = glm::normalize(spotlight.getLookAtDir());
@@ -231,6 +235,10 @@ bool ofApp::inSpotlight(ofLight& spotlight, glm::vec3 landerPos, float angle, fl
 	return delta <= angle;
 }
 
+// Check collision position
+//
+// Jessica Fung
+//
 void ofApp::checkCollisionPosition(glm::vec3 landerPos) {
 	float spotlightRadius = 20.0f;
 	inLight = false;
@@ -257,6 +265,10 @@ void ofApp::checkCollisionPosition(glm::vec3 landerPos) {
 	}
 }
 
+// Set up landing ring emitter with default values
+//
+// Jessica Fung
+//
 void ofApp::setupLandingRingEmitter(ParticleEmitter& emitter, glm::vec3 pos, glm::vec3 velocity) {
 	velocity = glm::vec3(0, 3, 0);
 
@@ -270,7 +282,10 @@ void ofApp::setupLandingRingEmitter(ParticleEmitter& emitter, glm::vec3 pos, glm
 	emitter.setCircularEmitterRadius(landingRadius);
 	emitter.setPosition(pos);
 }
+
 // load vertex buffer in preparation for rendering
+//
+// Lee Rogers
 //
 void ofApp::loadThrustVbo() {
 	if (thrustEmitter.sys->particles.size() < 1) return;
@@ -291,6 +306,8 @@ void ofApp::loadThrustVbo() {
 
 // load vertex buffer in preparation for rendering
 //
+// Lee Rogers
+//
 void ofApp::loadExplosionVbo() {
 	if (explosionEmitter.sys->particles.size() < 1) return;
 
@@ -309,6 +326,8 @@ void ofApp::loadExplosionVbo() {
 }
 
 // load vertex buffer in preparation for rendering
+//
+// Lee Rogers
 //
 void ofApp::loadVortexRingVbo() {
 	if (vortexRingEmitter.sys->particles.size() < 1) return;
@@ -329,6 +348,8 @@ void ofApp::loadVortexRingVbo() {
 
 // load vertex buffer in preparation for rendering
 //
+// Lee Rogers
+//
 void ofApp::loadLandingRingVbo() {
 	if (landingRingEmitter.sys->particles.size() < 1) return;
 
@@ -347,6 +368,8 @@ void ofApp::loadLandingRingVbo() {
 }
 
 // load vertex buffer in preparation for rendering
+//
+// Lee Rogers
 //
 void ofApp::loadLandingRingVbo2() {
 	if (landingRingEmitter2.sys->particles.size() < 1) return;
@@ -367,6 +390,8 @@ void ofApp::loadLandingRingVbo2() {
 
 // load vertex buffer in preparation for rendering
 //
+// Lee Rogers
+//
 void ofApp::loadLandingRingVbo3() {
 	if (landingRingEmitter3.sys->particles.size() < 1) return;
 
@@ -384,6 +409,10 @@ void ofApp::loadLandingRingVbo3() {
 	landingRingVbo3.setNormalData(&sizes[0], total, GL_STATIC_DRAW);
 }
 
+// Stop game
+//
+// Lee Rogers
+//
 void ofApp::stopGame() {
 	gameState = false;
 
